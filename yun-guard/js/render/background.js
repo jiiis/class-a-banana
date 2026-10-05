@@ -1,4 +1,4 @@
-import { W, H, ROAD_WIDTH } from "../config.js";
+import { W, H, ROAD_WIDTH, TOP_PAD } from "../config.js";
 import { rng, pointsAlongPath, closestPointOnPath } from "../util.js";
 import { map } from "../map.js";
 import { rect, circle, ellipse, poly, line, shadow } from "./gfx.js";
@@ -6,21 +6,24 @@ import { rect, circle, ellipse, poly, line, shadow } from "./gfx.js";
 // The scenery never changes, so we draw it once onto a hidden canvas
 // and then just copy that picture every frame.
 export function buildBackground() {
+  // The picture is a little taller than the map: the grass continues above it so tall towers on the top row have room
   const off = document.createElement("canvas");
-  off.width = W; off.height = H;
+  off.width = W; off.height = H + TOP_PAD;
   const c = off.getContext("2d");
+  c.translate(0, TOP_PAD);
   const rand = rng(1234);
+  const Y0 = -TOP_PAD, HH = H + TOP_PAD;            // the painted area, in map coordinates
 
   // Grass base
-  const g = c.createLinearGradient(0, 0, 0, H);
+  const g = c.createLinearGradient(0, Y0, 0, H);
   g.addColorStop(0, "#6fae3e");
   g.addColorStop(1, "#4f8a2c");
   c.fillStyle = g;
-  c.fillRect(0, 0, W, H);
+  c.fillRect(0, Y0, W, HH);
 
   // Rolling hills: lit from the top-left, shaded toward the bottom-right, with a soft shadow at their foot
   for (let i = 0; i < 7; i++) {
-    const hx = rand() * W, hy = rand() * H, rx = 70 + rand() * 110, ry = rx * (0.45 + rand() * 0.2);
+    const hx = rand() * W, hy = Y0 + rand() * HH, rx = 70 + rand() * 110, ry = rx * (0.45 + rand() * 0.2);
     ellipse(c, hx + rx * 0.12, hy + ry * 0.35, rx * 1.02, ry * 0.9, "rgba(20,60,15,0.18)");          // shadow at the foot of the hill
     const hg = c.createRadialGradient(hx - rx * 0.35, hy - ry * 0.45, 4, hx, hy, rx);
     hg.addColorStop(0, "rgba(170,225,110,0.55)");
@@ -31,12 +34,12 @@ export function buildBackground() {
   }
   // Sunlit patches
   for (let i = 0; i < 30; i++) {
-    ellipse(c, rand() * W, rand() * H, 40 + rand() * 80, 20 + rand() * 40, `rgba(255,255,160,${0.04 + rand() * 0.06})`);
+    ellipse(c, rand() * W, Y0 + rand() * HH, 40 + rand() * 80, 20 + rand() * 40, `rgba(255,255,160,${0.04 + rand() * 0.06})`);
   }
 
   // Thousands of tiny grass blades
   for (let i = 0; i < 2400; i++) {
-    const x = rand() * W, y = rand() * H, len = 3 + rand() * 5, lean = (rand() - 0.5) * 3;
+    const x = rand() * W, y = Y0 + rand() * HH, len = 3 + rand() * 5, lean = (rand() - 0.5) * 3;
     line(c, x, y, x + lean, y - len, rand() < 0.5 ? "rgba(30,90,20,0.35)" : "rgba(170,230,110,0.35)", 1);
   }
 
@@ -67,12 +70,12 @@ export function buildBackground() {
   const v = c.createRadialGradient(W * 0.5, H * 0.45, H * 0.45, W * 0.5, H * 0.5, H * 0.95);
   v.addColorStop(0, "rgba(0,0,0,0)");
   v.addColorStop(1, "rgba(0,20,0,0.28)");
-  c.fillStyle = v; c.fillRect(0, 0, W, H);
+  c.fillStyle = v; c.fillRect(0, Y0, W, HH);
   // Sunlight falls from the top-left
-  const sun = c.createLinearGradient(0, 0, W, H);
+  const sun = c.createLinearGradient(0, Y0, W, H);
   sun.addColorStop(0, "rgba(255,255,200,0.10)");
   sun.addColorStop(1, "rgba(0,0,40,0.10)");
-  c.fillStyle = sun; c.fillRect(0, 0, W, H);
+  c.fillStyle = sun; c.fillRect(0, Y0, W, HH);
   return off;
 }
 

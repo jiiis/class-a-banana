@@ -1,7 +1,7 @@
 import { ctx, circle, line, poly } from "./gfx.js";
 import { state } from "../state.js";
 import { map } from "../map.js";
-import { SPOT_RADIUS } from "../config.js";
+import { SPOT_RADIUS, W, TOP_PAD } from "../config.js";
 import { towerRange, abilityDef } from "../towers.js";
 import { buildBackground, drawSign, CASTLE_STYLES } from "./background.js";
 import { drawTower, flag } from "./towers.js";
@@ -118,7 +118,8 @@ function drawSpot(s, i, occupied, hovered) {
 
 export function draw() {
   if (!background) background = buildBackground();
-  ctx.drawImage(background, 0, 0);
+  ctx.setTransform(1, 0, 0, 1, 0, TOP_PAD);                        // everything is drawn in map coordinates
+  ctx.drawImage(background, 0, -TOP_PAD);                          // the picture already includes the grass strip above the map
   drawWater();
   // The banner on the castle keep ripples in the wind (the signpost and its flag are drawn with the actors below)
   map.castles.forEach((k, i) => flag(k.x, k.y - (k.style === 1 ? 86 : 92) * k.scale, 24 * k.scale, CASTLE_STYLES[k.style].banner, 1 + i));

@@ -1,5 +1,5 @@
 import { state } from "./state.js";
-import { TOWERS, TOTAL_WAVES, W, H } from "./config.js";
+import { TOWERS, TOTAL_WAVES, W, H, TOP_PAD } from "./config.js";
 import { map } from "./map.js";
 import { towerRange, towerDamage, upgradeCost, sellValue, canUpgrade, canSpecialise, abilityCost, abilityDef, soldierCount, soldierHp, soldierDamage, createTower } from "./towers.js";
 import { ABILITIES } from "./config.js";
@@ -90,7 +90,7 @@ export function openMenu(spotIndex) {
   let top = s.y + 30;
   if (top + mh > H - 4) top = s.y - mh - 34;
   menu.style.left = `${clamp(s.x - mw / 2, 4, W - mw - 4)}px`;
-  menu.style.top = `${hudH + clamp(top, 4, H - mh - 4)}px`;
+  menu.style.top = `${hudH + TOP_PAD + clamp(top, 4, H - mh - 4)}px`;
 }
 
 export function closeMenu() {
@@ -139,10 +139,22 @@ function handleMenuClick(ev) {
 }
 
 // Scale the whole board to fill the browser window.
+// The board is shown at a fixed, readable zoom: never smaller than its natural size, larger only when the
+// window has room for the whole thing. When it doesn't fit, the player drags to look around (see touch.js).
+export const view = { k: 1, panX: 0, panY: 0, mobile: false };
 export function fitToWindow() {
-  const fullH = $("hud").offsetHeight + H;
-  const k = Math.min(window.innerWidth / W, window.innerHeight / fullH);
-  $("wrap").style.transform = `translate(-50%, -50%) scale(${k})`;
+  const fullH = $("hud").offsetHeight + H + TOP_PAD;
+  view.mobile = window.matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 1;
+  view.k = Math.max(1, Math.min(window.innerWidth / W, window.innerHeight / fullH));
+  applyView();
+}
+export const canPan = () => W * view.k > window.innerWidth || ($("hud").offsetHeight + H + TOP_PAD) * view.k > window.innerHeight;
+export function panBy(dx, dy) { view.panX += dx; view.panY += dy; applyView(); }
+function applyView() {
+  const fullH = $("hud").offsetHeight + H + TOP_PAD, bw = W * view.k, bh = fullH * view.k;
+  const maxX = Math.max(0, (bw - window.innerWidth) / 2), maxY = Math.max(0, (bh - window.innerHeight) / 2);   // never pan past the board's edge
+  view.panX = clamp(view.panX, -maxX, maxX); view.panY = clamp(view.panY, -maxY, maxY);
+  $("wrap").style.transform = `translate(calc(-50% + ${view.panX}px), calc(-50% + ${view.panY}px)) scale(${view.k})`;
 }
 
 export function initUi() {

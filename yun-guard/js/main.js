@@ -1,6 +1,6 @@
 import { canvas } from "./render/gfx.js";
 import { state } from "./state.js";
-import { W, H, SPOT_RADIUS } from "./config.js";
+import { W, H, SPOT_RADIUS, TOP_PAD } from "./config.js";
 import { dist } from "./util.js";
 import { map, generateMap } from "./map.js";
 import { update } from "./update.js";
@@ -10,6 +10,7 @@ import { startWave, spawnEnemy } from "./waves.js";
 import { createTower, setRally } from "./towers.js";
 import { initCritters } from "./critters.js";
 import { initHero, sendHero, selectedHero, selectHero, deselectHeroes, heroAt } from "./hero.js";
+import { initTouch } from "./touch.js";
 import { unlockAudio, toggleMute, isMuted, sfx } from "./audio.js";
 import { initWeather } from "./weather.js";
 
@@ -18,6 +19,7 @@ const seedParam = Number(new URLSearchParams(location.search).get("seed"));
 generateMap(seedParam > 0 ? seedParam : Math.floor(Math.random() * 1e6));
 
 initUi();
+initTouch();
 initCritters();
 initWeather();
 
@@ -38,7 +40,7 @@ if (["april", "avril", "ember", "willow", "meilin"].includes(preset)) chooseHero
 // Click a build spot to open its menu; click empty ground to close it.
 canvas.addEventListener("click", (ev) => {
   const r = canvas.getBoundingClientRect();
-  const p = { x: (ev.clientX - r.left) * (W / r.width), y: (ev.clientY - r.top) * (H / r.height) };
+  const p = { x: (ev.clientX - r.left) * (W / r.width), y: (ev.clientY - r.top) * ((H + TOP_PAD) / r.height) - TOP_PAD };
   const clicked = heroAt(p), active = selectedHero();
   if (state.rallyFor) {                                   // placing a barracks rally flag
     if (state.towers.includes(state.rallyFor)) setRally(state.rallyFor, p);
@@ -62,7 +64,7 @@ canvas.addEventListener("click", (ev) => {
 // Highlight the build spot under the mouse
 canvas.addEventListener("mousemove", (ev) => {
   const r = canvas.getBoundingClientRect();
-  const p = { x: (ev.clientX - r.left) * (W / r.width), y: (ev.clientY - r.top) * (H / r.height) };
+  const p = { x: (ev.clientX - r.left) * (W / r.width), y: (ev.clientY - r.top) * ((H + TOP_PAD) / r.height) - TOP_PAD };
   const i = map.spots.findIndex((s) => dist(s, p) <= SPOT_RADIUS + 5);
   state.hover = i >= 0 ? i : null;
   // With a hero selected, an animal under the mouse is marked as the would-be target
