@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "game",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8123", "--directory", "yun-guard"],
+      "port": 8123
+    },
+    {
+      "name": "gore-pot",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8125", "--directory", "gore-pot"],
+      "port": 8125
+    },
+    {
+      "name": "shoo-shoo",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8127", "--directory", "shoo-shoo"],
+      "port": 8127
+    }
+  ]
+}

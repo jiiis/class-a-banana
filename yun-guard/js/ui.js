@@ -1,0 +1,160 @@
+import { state } from "./state.js";
+import { TOWERS, TOTAL_WAVES, W, H } from "./config.js";
+import { map } from "./map.js";
+import { towerRange, towerDamage, upgradeCost, sellValue, canUpgrade, canSpecialise, abilityCost, abilityDef, soldierCount, soldierHp, soldierDamage, createTower } from "./towers.js";
+import { ABILITIES } from "./config.js";
+import { clamp } from "./util.js";
+import { sfx } from "./audio.js";
+
+const $ = (id) => document.getElementById(id);
+
+export function refreshHud() {
+  $("gold").textContent = state.gold;
+  $("lives").textContent = state.lives;
+  $("wave").textContent = state.wave;
+  refreshMenu();
+}
+
+// Keep an open menu in sync with the gold you have: options unlock as soon as you can afford them.
+function refreshMenu() {
+  if (state.selected === null) return;
+  for (const b of $("menu").querySelectorAll("button[data-cost]")) b.disabled = state.gold < Number(b.dataset.cost);
+}
+
+export function setWaveButton(text, disabled) {
+  const b = $("next");
+  b.textContent = text;
+  if (disabled !== undefined) b.disabled = disabled;
+}
+
+export function endGame(won) {
+  state.over = true;
+  $("next").disabled = true;
+  $("overlayTitle").textContent = won ? "Victory!" : "Game Over";
+  $("overlayText").textContent = (won
+    ? `You defended the kingdom through all ${TOTAL_WAVES} waves!`
+    : `The monsters broke through on wave ${state.wave}. Try a different tower mix!`)
+    + ` (Map #${map.seed})`;
+  $("overlay").style.display = "flex";
+  sfx(won ? "victory" : "gameOver");
+}
+
+// ---------- Build / upgrade menu ----------
+export function openMenu(spotIndex) {
+  state.selected = spotIndex;
+  const s = map.spots[spotIndex];
+  const tower = state.towers.find((t) => t.spot === spotIndex);
+  let html = "";
+  if (tower) {
+    const ab = abilityDef(tower);
+    html += `<div class="head"><span class="title">${tower.def.emoji} ${ab ? ab.name : tower.def.name}</span><span class="lv">${ab ? ab.emoji + " " : ""}Lv ${tower.level}</span></div>`;
+    const stat = (label, value) => `<span class="stat"><small>${label}</small><b>${value}</b></span>`;
+    html += `<div class="stats">` + (tower.def.soldiers
+      ? stat("Damage", soldierDamage(tower)) + stat("Health", soldierHp(tower)) + stat("Soldiers", soldierCount(tower))
+      : stat("Damage", towerDamage(tower)) + stat("Range", towerRange(tower)) + (tower.def.chain ? stat("Hops", tower.def.chain + tower.level - 1) : tower.def.splash ? stat("Splash", tower.def.splash) : stat("Rate", `${tower.def.rate}/s`)))
+      + `</div>`;
+    html += `<div class="row">`;
+    if (canUpgrade(tower)) {
+      const c = upgradeCost(tower);
+      html += `<button class="pill primary" data-action="upgrade" data-cost="${c}" ${state.gold < c ? "disabled" : ""}>Upgrade <b>${c}</b></button>`;
+    } else if (canSpecialise(tower)) {
+      const c = abilityCost(tower);
+      html += `</div><div class="hint">Choose a level 4 ability</div><div class="grid two">`;
+      for (const key in ABILITIES[tower.type]) {
+        const a = ABILITIES[tower.type][key];
+        html += `<button class="tile" data-action="ability" data-ability="${key}" data-cost="${c}" data-desc="${a.desc}" ${state.gold < c ? "disabled" : ""}>
+          <span class="ico">${a.emoji}</span><span class="nm">${a.name}</span><span class="cost">${c}</span></button>`;
+      }
+      html += `</div><div class="hint">Hover an ability to see what it does</div><div class="row">`;
+    } else html += `<button class="pill" disabled>Max level</button>`;
+    if (tower.def.soldiers) html += `<button class="pill" data-action="rally" title="Move rally point">🚩</button>`;
+    html += `<button class="pill sell" data-action="sell">Sell <b>+${sellValue(tower)}</b></button>`;
+    html += `</div>`;
+  } else {
+    html += `<div class="head"><span class="title">Build</span><span class="lv">💰 ${state.gold}</span></div><div class="grid">`;
+    for (const key in TOWERS) {
+      const d = TOWERS[key];
+      html += `<button class="tile" data-action="build" data-type="${key}" data-cost="${d.cost}" data-desc="${d.desc}" ${state.gold < d.cost ? "disabled" : ""}>
+        <span class="ico">${d.emoji}</span><span class="nm">${d.short || d.name}</span><span class="cost">${d.cost}</span></button>`;
+    }
+    html += `</div><div class="hint">Pick a tower</div>`;
+  }
+  html += `<button class="x" data-action="close" title="Close">✕</button>`;
+
+  const menu = $("menu");
+  menu.innerHTML = html;
+  menu.style.display = "block";
+  const hudH = $("hud").offsetHeight;
+  const mw = menu.offsetWidth, mh = menu.offsetHeight;
+  // Prefer below the spot; flip above if that runs off the board; always stay inside it
+  let top = s.y + 30;
+  if (top + mh > H - 4) top = s.y - mh - 34;
+  menu.style.left = `${clamp(s.x - mw / 2, 4, W - mw - 4)}px`;
+  menu.style.top = `${hudH + clamp(top, 4, H - mh - 4)}px`;
+}
+
+export function closeMenu() {
+  state.selected = null;
+  $("menu").style.display = "none";
+}
+
+function handleMenuClick(ev) {
+  const btn = ev.target.closest("button");
+  if (!btn) return;
+  const spot = state.selected;
+  const tower = state.towers.find((t) => t.spot === spot);
+  const action = btn.dataset.action;
+
+  if (action === "build") {
+    const def = TOWERS[btn.dataset.type];
+    if (state.gold >= def.cost) {
+      state.gold -= def.cost;
+      state.towers.push(createTower(spot, btn.dataset.type));
+      sfx("build");
+    }
+    closeMenu();
+  } else if (action === "upgrade" && tower) {
+    const c = upgradeCost(tower);
+    if (state.gold >= c) { state.gold -= c; tower.spent += c; tower.level++; sfx("upgrade"); }
+    openMenu(spot);
+  } else if (action === "ability" && tower) {
+    const c = abilityCost(tower);
+    if (state.gold >= c) { state.gold -= c; tower.spent += c; tower.level++; tower.ability = btn.dataset.ability; sfx("upgrade"); }
+    openMenu(spot);
+  } else if (action === "rally" && tower) {
+    state.rallyFor = tower;                       // the next click on the map places the flag
+    document.getElementById("c").style.cursor = "crosshair";
+    sfx("click");
+    closeMenu();
+  } else if (action === "sell" && tower) {
+    state.gold += sellValue(tower);
+    state.towers = state.towers.filter((t) => t !== tower);
+    sfx("sell");
+    closeMenu();
+  } else {
+    sfx("click");
+    closeMenu();
+  }
+  refreshHud();
+}
+
+// Scale the whole board to fill the browser window.
+export function fitToWindow() {
+  const fullH = $("hud").offsetHeight + H;
+  const k = Math.min(window.innerWidth / W, window.innerHeight / fullH);
+  $("wrap").style.transform = `translate(-50%, -50%) scale(${k})`;
+}
+
+export function initUi() {
+  $("totalWaves").textContent = TOTAL_WAVES;
+  $("menu").addEventListener("click", handleMenuClick);
+  $("menu").addEventListener("mouseover", (ev) => {                 // hovering a tile shows what that tower does
+    const tile = ev.target.closest(".tile"), hint = $("menu").querySelector(".hint");
+    if (tile && hint) hint.textContent = tile.dataset.desc;
+  });
+  $("restart").addEventListener("click", () => { location.href = location.pathname; });   // fresh random map
+  $("seed").textContent = map.seed;
+  window.addEventListener("resize", fitToWindow);
+  fitToWindow();
+  refreshHud();
+}

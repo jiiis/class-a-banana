@@ -1,0 +1,456 @@
+import { W, H, ROAD_WIDTH } from "../config.js";
+import { rng, pointsAlongPath, closestPointOnPath } from "../util.js";
+import { map } from "../map.js";
+import { rect, circle, ellipse, poly, line, shadow } from "./gfx.js";
+
+// The scenery never changes, so we draw it once onto a hidden canvas
+// and then just copy that picture every frame.
+export function buildBackground() {
+  const off = document.createElement("canvas");
+  off.width = W; off.height = H;
+  const c = off.getContext("2d");
+  const rand = rng(1234);
+
+  // Grass base
+  const g = c.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, "#6fae3e");
+  g.addColorStop(1, "#4f8a2c");
+  c.fillStyle = g;
+  c.fillRect(0, 0, W, H);
+
+  // Rolling hills: lit from the top-left, shaded toward the bottom-right, with a soft shadow at their foot
+  for (let i = 0; i < 7; i++) {
+    const hx = rand() * W, hy = rand() * H, rx = 70 + rand() * 110, ry = rx * (0.45 + rand() * 0.2);
+    ellipse(c, hx + rx * 0.12, hy + ry * 0.35, rx * 1.02, ry * 0.9, "rgba(20,60,15,0.18)");          // shadow at the foot of the hill
+    const hg = c.createRadialGradient(hx - rx * 0.35, hy - ry * 0.45, 4, hx, hy, rx);
+    hg.addColorStop(0, "rgba(170,225,110,0.55)");
+    hg.addColorStop(0.6, "rgba(120,185,70,0.25)");
+    hg.addColorStop(1, "rgba(60,110,35,0.35)");
+    ellipse(c, hx, hy, rx, ry, hg);
+    ellipse(c, hx - rx * 0.1, hy - ry * 0.15, rx * 0.7, ry * 0.55, "rgba(255,255,170,0.08)");       // sun on the crest
+  }
+  // Sunlit patches
+  for (let i = 0; i < 30; i++) {
+    ellipse(c, rand() * W, rand() * H, 40 + rand() * 80, 20 + rand() * 40, `rgba(255,255,160,${0.04 + rand() * 0.06})`);
+  }
+
+  // Thousands of tiny grass blades
+  for (let i = 0; i < 2400; i++) {
+    const x = rand() * W, y = rand() * H, len = 3 + rand() * 5, lean = (rand() - 0.5) * 3;
+    line(c, x, y, x + lean, y - len, rand() < 0.5 ? "rgba(30,90,20,0.35)" : "rgba(170,230,110,0.35)", 1);
+  }
+
+  // Ponds and rivers run under the road
+  for (const p of map.ponds) drawPond(c, p);
+  for (const r of map.rivers) drawRiver(c, r, rand);
+
+  drawRoad(c, rand, map.paths);
+
+  for (const b of map.bridges) drawBridge(c, b);
+
+  // Scenery, drawn back to front so nearer things overlap farther ones
+  for (const d of [...map.deco].sort((a, b) => a.y - b.y)) {
+    const s = d.s || 1;
+    castShadow(c, d.x, d.y, d.type === "tree" ? 16 * s : d.type === "flower" || d.type === "mushroom" ? 0 : 9 * s, d.type === "tree" ? 22 * s : 6);
+    DRAW_DECO[d.type](c, d.x, d.y, s, d.variant || 0, rng(d.seed || 1));
+  }
+  for (const e of map.entries) castShadow(c, e.x, e.y + 10, 8, 30);
+  for (const k of map.castles) {
+    castShadow(c, k.x, k.y, 50 * k.scale, 90 * k.scale);
+    c.save(); c.translate(k.x, k.y); c.scale(k.scale, k.scale);
+    drawCastle(c, 0, 0, k.style);
+    c.restore();
+  }
+  // (the signpost itself is drawn each frame in draw.js so monsters pass behind it correctly)
+
+  // Vignette: the corners fall away into shade
+  const v = c.createRadialGradient(W * 0.5, H * 0.45, H * 0.45, W * 0.5, H * 0.5, H * 0.95);
+  v.addColorStop(0, "rgba(0,0,0,0)");
+  v.addColorStop(1, "rgba(0,20,0,0.28)");
+  c.fillStyle = v; c.fillRect(0, 0, W, H);
+  // Sunlight falls from the top-left
+  const sun = c.createLinearGradient(0, 0, W, H);
+  sun.addColorStop(0, "rgba(255,255,200,0.10)");
+  sun.addColorStop(1, "rgba(0,0,40,0.10)");
+  c.fillStyle = sun; c.fillRect(0, 0, W, H);
+  return off;
+}
+
+// A long, soft shadow stretching to the lower-right, as if the sun were high on the left
+function castShadow(c, x, y, w, h) {
+  if (!w) return;
+  c.save();
+  c.translate(x + w * 0.35, y + 2);
+  c.transform(1, 0, -0.55, 0.35, 0, 0);                        // skew and flatten onto the ground
+  const g = c.createRadialGradient(0, -h * 0.3, 1, 0, -h * 0.3, h);
+  g.addColorStop(0, "rgba(10,30,5,0.32)");
+  g.addColorStop(1, "rgba(10,30,5,0)");
+  c.fillStyle = g;
+  c.beginPath(); c.ellipse(0, -h * 0.3, w, h, 0, 0, Math.PI * 2); c.fill();
+  c.restore();
+}
+
+function strokePath(c, width, color) {
+  strokePoly(c, map.path, width, color);
+}
+
+// The road: a sunken dirt track that is never the same width twice. It is drawn as hundreds of
+// short, round-capped strokes whose width wanders along the way, then the edges are roughed up
+// with earth lumps and grass creeping in, so there is no clean outline anywhere.
+function drawRoad(c, rand, paths) {
+  // Pre-compute the sample points and the wandering width of every route
+  const roads = paths.map((path) => {
+    const pts = pointsAlongPath(path, 4);
+    pts.push({ ...path[path.length - 1], nx: 0, ny: 1 });
+    const ph1 = rand() * 6, ph2 = rand() * 6;
+    let w = pts.map((_, i) => ROAD_WIDTH * (0.82 + 0.2 * Math.sin(i * 0.06 + ph1) + 0.1 * Math.sin(i * 0.19 + ph2)) + (rand() - 0.5) * 6);
+    for (let pass = 0; pass < 3; pass++) w = w.map((v, i) => (w[Math.max(0, i - 1)] + v + w[Math.min(w.length - 1, i + 1)]) / 3);
+    return { path, pts, w };
+  });
+  // Is this point on the surface of one of the OTHER routes? (used to keep edge details off junctions)
+  const onOtherRoad = (k, p) => roads.some((r, j) => j !== k && closestPointOnPath(r.path, p).d < ROAD_WIDTH / 2 - 2);
+
+  // One layer = a chain of short strokes along EVERY route, so where routes meet the layers merge
+  // into one surface with no bank line between them. scale/extra shape the layer, dy sinks it.
+  const layer = (color, scale, extra, dy = 0, skip = 0) => {
+    c.strokeStyle = color; c.lineCap = "round"; c.lineJoin = "round";
+    for (const { pts, w } of roads) {
+      for (let i = 0; i < pts.length - 1; i++) {
+        if (skip && rand() < skip) continue;                        // patchy layers leave gaps
+        c.lineWidth = Math.max(2, w[i] * scale + extra + (skip ? (rand() - 0.5) * 8 : 0));
+        c.beginPath(); c.moveTo(pts[i].x, pts[i].y + dy); c.lineTo(pts[i + 1].x, pts[i + 1].y + dy); c.stroke();
+      }
+    }
+  };
+  layer("rgba(190,235,120,0.2)", 1, 10, 4, 0.45);                // faint, broken patches of lit grass along the lower lip
+  layer("#5d4037", 1, 8);                                        // earthen banks
+  layer("#7a5230", 1, 0);                                        // shaded base
+  layer("#a1703f", 1, -6, 5);                                    // surface, leaving a shadow band along the upper bank
+  layer("#b8864f", 1, -20, 6);                                   // worn centre
+
+  roads.forEach(({ pts, w }, k) => {
+    // Rough the edges: lumps of earth bulging out, grass creeping in, so the outline is ragged
+    for (let i = 0; i < pts.length; i += 2) {
+      const p = pts[i], half = w[i] / 2;
+      if (rand() < 0.45) {
+        const side = rand() < 0.5 ? 1 : -1, o = side * (half + 1 + rand() * 4);
+        const q = { x: p.x + p.nx * o, y: p.y + p.ny * o };
+        if (!onOtherRoad(k, q)) ellipse(c, q.x, q.y, 3 + rand() * 5, 2 + rand() * 3, rand() < 0.5 ? "#5d4037" : "#7a5230");
+      }
+      if (rand() < 0.4) {
+        const side = rand() < 0.5 ? 1 : -1, o = side * (half + 2 - rand() * 6);
+        const q = { x: p.x + p.nx * o, y: p.y + p.ny * o };
+        if (!onOtherRoad(k, q)) ellipse(c, q.x, q.y, 3 + rand() * 4, 2 + rand() * 2.5, rand() < 0.5 ? "#4f8a2c" : "#6fae3e");
+      }
+    }
+    // Surface texture: dark blotches, pebbles, wheel-worn patches and grass tufts along the edges
+    for (const [i, p] of pts.entries()) {
+      const half = w[i] / 2;
+      if (rand() < 0.4) {
+        const o = (rand() - 0.5) * (w[i] - 10);
+        ellipse(c, p.x + p.nx * o, p.y + p.ny * o + 3, 3 + rand() * 5, 2 + rand() * 3, `rgba(80,50,30,${0.08 + rand() * 0.1})`);
+      }
+      if (rand() < 0.15) {
+        const o = (rand() - 0.5) * (w[i] - 12);
+        circle(c, p.x + p.nx * o, p.y + p.ny * o + 3, 1 + rand() * 1.6, rand() < 0.5 ? "#8d8d8d" : "#c2a98a");
+      }
+      if (rand() < 0.08) {
+        const o = (rand() - 0.5) * (w[i] - 16);
+        ellipse(c, p.x + p.nx * o, p.y + p.ny * o + 3, 5 + rand() * 6, 2 + rand() * 2, "rgba(255,230,180,0.12)");
+      }
+      if (rand() < 0.3) {
+        const o = (rand() < 0.5 ? 1 : -1) * (half + 2 + rand() * 4);
+        const q = { x: p.x + p.nx * o, y: p.y + p.ny * o };
+        if (!onOtherRoad(k, q)) for (let kk = -1; kk <= 1; kk++) line(c, q.x, q.y, q.x + kk * 3, q.y - 5 - rand() * 3, "#2f6b1f", 1.5);
+      }
+    }
+  });
+}
+
+function strokePoly(c, pts, width, color) {
+  c.lineCap = "round"; c.lineJoin = "round";
+  c.strokeStyle = color; c.lineWidth = width;
+  c.beginPath();
+  pts.forEach((p, i) => (i ? c.lineTo(p.x, p.y) : c.moveTo(p.x, p.y)));
+  c.stroke();
+}
+
+// A stream whose width changes along its length: muddy banks, deep water, a paler current,
+// a sunlit centre, with pebbles, reeds and lily pads along the way.
+// A small still pond: an irregular blob of water with a damp bank, lily pads, reeds and pebbles
+export function pondOutline(p, scale = 1, extra = 0) {
+  const n = p.wobble.length, pts = [];
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2, k = p.wobble[i];
+    pts.push([p.x + Math.cos(a) * (p.rx * k * scale + extra), p.y + Math.sin(a) * (p.ry * k * scale + extra)]);
+  }
+  return pts;
+}
+function blob(c, pts, fill) {                                           // closed smooth curve through the midpoints
+  c.fillStyle = fill; c.beginPath();
+  const n = pts.length;
+  for (let i = 0; i < n; i++) {
+    const a = pts[i], b = pts[(i + 1) % n], mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+    if (i === 0) c.moveTo((pts[n - 1][0] + a[0]) / 2, (pts[n - 1][1] + a[1]) / 2);
+    c.quadraticCurveTo(a[0], a[1], mx, my);
+  }
+  c.closePath(); c.fill();
+}
+function drawPond(c, p) {
+  const rand = rng(p.seed);
+  blob(c, pondOutline(p, 1, 7), "rgba(60,90,35,0.55)");                // damp bank
+  blob(c, pondOutline(p, 1, 3), "#5c4a33");                             // mud edge
+  blob(c, pondOutline(p, 1, 0), "#2f6a93");                             // deep water
+  const g = c.createRadialGradient(p.x - p.rx * 0.2, p.y - p.ry * 0.3, 1, p.x, p.y, p.rx);
+  g.addColorStop(0, "rgba(140,200,235,0.6)"); g.addColorStop(0.6, "rgba(74,147,196,0.5)"); g.addColorStop(1, "rgba(47,106,147,0)");
+  blob(c, pondOutline(p, 0.85, 0), g);                                  // sunlit shallows
+  for (let i = 0; i < 3; i++) {                                         // lily pads, one with a flower
+    const a = rand() * Math.PI * 2, r = rand() * 0.55;
+    const lx = p.x + Math.cos(a) * p.rx * r, ly = p.y + Math.sin(a) * p.ry * r, lr = 3 + rand() * 2.5;
+    circle(c, lx, ly, lr, "#5faa4a", "#3c7a2a", 0.8);
+    line(c, lx, ly, lx + lr, ly - lr * 0.4, "#3c7a2a", 1);
+    if (i === 0) { for (let k = 0; k < 5; k++) { const fa = k * 1.26; ellipse(c, lx + Math.cos(fa) * 1.8, ly - 1 + Math.sin(fa) * 1.2, 1.6, 0.9, "#f8bbd0"); } circle(c, lx, ly - 1, 0.9, "#ffeb3b"); }
+  }
+  for (let i = 0; i < 5; i++) {                                         // reeds around the edge
+    const a = rand() * Math.PI * 2, rx = p.x + Math.cos(a) * (p.rx + 4), ry = p.y + Math.sin(a) * (p.ry + 4);
+    for (let k = -1; k <= 1; k++) line(c, rx, ry, rx + k * 2.5, ry - 9 - rand() * 5, "#4f7f2a", 1.5);
+    if (rand() < 0.6) circle(c, rx, ry - 11, 1.2, "#6d4c41");
+  }
+  for (let i = 0; i < 6; i++) {                                         // pebbles on the bank
+    const a = rand() * Math.PI * 2, d = 2 + rand() * 5;
+    circle(c, p.x + Math.cos(a) * (p.rx + d), p.y + Math.sin(a) * (p.ry + d), 1 + rand() * 1.5, rand() < 0.5 ? "#9e9e9e" : "#c2b280");
+  }
+}
+
+function drawRiver(c, r, rand) {
+  const pts = r.points;
+  // Smooth sideways normals at every point (average of the two neighbouring segments)
+  const normals = pts.map((p, i) => {
+    const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)];
+    const dx = b.x - a.x, dy = b.y - a.y, l = Math.hypot(dx, dy) || 1;
+    return { x: -dy / l, y: dx / l };
+  });
+  // Fill the band between the two banks, scaled to a fraction of the local width, shifted sideways if asked
+  const band = (scale, color, extra = 0, shift = 0) => {
+    c.fillStyle = color;
+    c.beginPath();
+    pts.forEach((p, i) => { const o = p.w * scale / 2 + extra + shift; const x = p.x + normals[i].x * o, y = p.y + normals[i].y * o; i ? c.lineTo(x, y) : c.moveTo(x, y); });
+    for (let i = pts.length - 1; i >= 0; i--) { const p = pts[i], o = -(p.w * scale / 2 + extra) + shift; c.lineTo(p.x + normals[i].x * o, p.y + normals[i].y * o); }
+    c.closePath();
+    c.fill();
+  };
+  band(1, "rgba(60,90,35,0.55)", 7);                                  // damp bank
+  band(1, "#5c4a33", 3);                                              // mud edge
+  band(1, "#2f6a93");                                                 // deep water
+  band(0.6, "#4a93c4", 0, 1.5);                                       // current, drifting toward one bank
+  band(0.25, "rgba(140,200,235,0.55)", 0, 1.5);                       // sunlit centre
+  // Details along the banks, following the local width
+  for (let i = 0; i < pts.length - 1; i++) {
+    const a = pts[i], b = pts[i + 1], n = normals[i];
+    for (let t = 0; t < 1; t += 0.15) {
+      const x = a.x + (b.x - a.x) * t, y = a.y + (b.y - a.y) * t, w = a.w + (b.w - a.w) * t;
+      if (rand() < 0.3) {                                             // pebbles
+        const side = rand() < 0.5 ? 1 : -1, o = side * (w / 2 + 2 + rand() * 4);
+        circle(c, x + n.x * o, y + n.y * o, 1 + rand() * 1.5, rand() < 0.5 ? "#9e9e9e" : "#c2b280");
+      }
+      if (rand() < 0.12) {                                            // reeds, thicker where the water is wide and slow
+        const side = rand() < 0.5 ? 1 : -1, o = side * (w / 2 + 5 + rand() * 3);
+        const rx = x + n.x * o, ry = y + n.y * o;
+        for (let k = -1; k <= 1; k++) line(c, rx, ry, rx + k * 2.5, ry - 9 - rand() * 5, "#4f7f2a", 1.5);
+        circle(c, rx, ry - 11, 1.2, "#6d4c41");
+      }
+      if (w > 22 && rand() < 0.1) {                                   // lily pads only on the wide pools
+        const o = (rand() - 0.5) * w * 0.7;
+        circle(c, x + n.x * o, y + n.y * o, 3 + rand() * 2, "#5faa4a", "#3c7a2a", 0.8);
+      }
+      if (w < 18 && rand() < 0.12) {                                  // white water in the narrow runs
+        const o = (rand() - 0.5) * w * 0.6;
+        line(c, x + n.x * o - 3, y + n.y * o, x + n.x * o + 3, y + n.y * o, "rgba(255,255,255,0.55)", 1.5);
+      }
+    }
+  }
+}
+
+// A wooden plank bridge carrying the road over a river
+function drawBridge(c, b) {
+  c.save();
+  c.translate(b.x, b.y);
+  c.rotate(b.angle);
+  const half = b.span / 2, wide = ROAD_WIDTH / 2 + 4;
+  rect(c, -half - 3, -wide - 2, b.span + 6, wide * 2 + 4, "rgba(0,0,0,0.25)");          // shadow onto the water
+  rect(c, -half, -wide, b.span, wide * 2, "#8d6e63", "#4e342e", 1.5);                  // deck
+  for (let x = -half + 4; x < half; x += 7) line(c, x, -wide, x, wide, "#6d4c41", 1.2); // planks
+  for (const side of [-1, 1]) {                                                         // rails and posts
+    line(c, -half, side * (wide - 2), half, side * (wide - 2), "#5d4037", 3);
+    for (let x = -half + 2; x <= half - 2; x += 14) { rect(c, x - 2, side * (wide - 2) - 6, 4, 12, "#6d4c41", "#3e2723", 0.8); }
+  }
+  c.restore();
+}
+
+// ---------- Scenery ----------
+// Every function gets a size, a variant (0-2) and its own random generator, so no two pieces look alike.
+const DRAW_DECO = {
+  tree(c, x, y, s, v, r) {
+    shadow(c, x, y + 4 * s, 14 * s, 5 * s);
+    if (v === 0) {                                                           // broadleaf: a knobbly canopy of blobs
+      const trunk = ["#6d4c41", "#5d4037", "#795548"][Math.floor(r() * 3)];
+      rect(c, x - 3 * s, y - 10 * s, 6 * s, 14 * s, trunk);
+      line(c, x - 1 * s, y - 8 * s, x - 5 * s, y - 14 * s, trunk, 2.5 * s);
+      const tint = Math.floor(r() * 3), dark = ["#2e7d32", "#33691e", "#1b5e20"][tint], light = ["#43a047", "#558b2f", "#2e7d32"][tint];
+      const blobs = 4 + Math.floor(r() * 3);
+      for (let i = 0; i < blobs; i++) { const a = r() * Math.PI * 2, d = r() * 7 * s; circle(c, x + Math.cos(a) * d, y - 17 * s + Math.sin(a) * d * 0.7, (7 + r() * 5) * s, dark); }
+      circle(c, x + (r() - 0.5) * 4 * s, y - 21 * s, (8 + r() * 3) * s, light);
+      circle(c, x - 3 * s, y - 25 * s, 4 * s, "rgba(255,255,255,0.15)");
+      if (r() < 0.35) for (let i = 0; i < 4; i++) circle(c, x + (r() - 0.5) * 16 * s, y - 16 * s + (r() - 0.5) * 10 * s, 1.3 * s, r() < 0.5 ? "#e53935" : "#ffb300");   // fruit
+    } else if (v === 1) {                                                    // pine: stacked triangles
+      rect(c, x - 2.5 * s, y - 8 * s, 5 * s, 12 * s, "#5d4037");
+      const tiers = 3 + Math.floor(r() * 2), g1 = ["#1b5e20", "#2e7d32", "#245a1a"][Math.floor(r() * 3)];
+      for (let i = 0; i < tiers; i++) {
+        const w = (14 - i * 3) * s, ty = y - 6 * s - i * 9 * s;
+        poly(c, [[x - w, ty], [x, ty - 13 * s], [x + w, ty]], g1, "#0d3d12", 0.8);
+        poly(c, [[x - w, ty], [x, ty - 13 * s], [x - w * 0.2, ty]], "rgba(255,255,255,0.1)");
+      }
+      if (r() < 0.3) for (let i = 0; i < 3; i++) circle(c, x + (r() - 0.5) * 10 * s, y - 12 * s - r() * 14 * s, 1.1 * s, "#8d6e63");   // cones
+    } else {                                                                 // birch: pale trunk with bands, airy light canopy
+      rect(c, x - 2.5 * s, y - 14 * s, 5 * s, 18 * s, "#eceff1", "#9e9e9e", 0.6);
+      for (let i = 0; i < 4; i++) line(c, x - 2.5 * s, y - 12 * s + i * 4 * s + r() * 2, x + 2.5 * s, y - 11 * s + i * 4 * s, "#424242", 1);
+      const blobs = 5 + Math.floor(r() * 3);
+      for (let i = 0; i < blobs; i++) { const a = r() * Math.PI * 2, d = r() * 8 * s; circle(c, x + Math.cos(a) * d, y - 22 * s + Math.sin(a) * d * 0.8, (5 + r() * 4) * s, r() < 0.5 ? "#9ccc65" : "#aed581"); }
+      circle(c, x - 2 * s, y - 26 * s, 3.5 * s, "rgba(255,255,255,0.2)");
+    }
+  },
+  rock(c, x, y, s, v, r) {
+    shadow(c, x, y + 5 * s, 12 * s, 4 * s);
+    const greys = [["#8d8d8d", "#5f5f5f", "#aaaaaa"], ["#9e9789", "#6b655a", "#bdb5a6"], ["#7d8a92", "#4f5a61", "#9fadb5"]][v];
+    const n = 5 + Math.floor(r() * 3), pts = [];
+    for (let i = 0; i < n; i++) { const a = (i / n) * Math.PI * 2, rad = (6 + r() * 6) * s; pts.push([x + Math.cos(a) * rad, y + Math.sin(a) * rad * 0.65]); }
+    poly(c, pts, greys[0], greys[1], 1.2);
+    poly(c, pts.slice(0, Math.ceil(n / 2)).map(([px, py]) => [x + (px - x) * 0.55, y - 3 * s + (py - y) * 0.45]), greys[2]);   // lit top facet
+    if (r() < 0.5) line(c, x - 3 * s, y + 1 * s, x + 2 * s, y - 3 * s, greys[1], 1);                                           // crack
+    if (r() < 0.5) { circle(c, x + (r() - 0.5) * 8 * s, y + 2 * s, 2.2 * s, "#5b8f33"); circle(c, x + (r() - 0.5) * 8 * s, y - 2 * s, 1.5 * s, "#6ea83f"); }   // moss
+    if (r() < 0.4) { const sx = x + 10 * s, sy = y + 3 * s; poly(c, [[sx - 3 * s, sy + 2 * s], [sx, sy - 2 * s], [sx + 4 * s, sy + 1 * s], [sx + 2 * s, sy + 3 * s]], greys[0], greys[1], 0.8); }   // a smaller stone beside it
+  },
+  bush(c, x, y, s, v, r) {
+    shadow(c, x, y + 6 * s, 12 * s, 4 * s);
+    const greens = [["#33691e", "#558b2f"], ["#2e7d32", "#43a047"], ["#4e6b1f", "#6b8e23"]][v];
+    const n = 2 + Math.floor(r() * 3);
+    for (let i = 0; i < n; i++) circle(c, x + (i - (n - 1) / 2) * 6 * s + (r() - 0.5) * 3, y + (r() - 0.5) * 3, (6 + r() * 3) * s, greens[0]);
+    circle(c, x + (r() - 0.5) * 4, y - 5 * s, (6 + r() * 3) * s, greens[1]);
+    circle(c, x - 2 * s, y - 8 * s, 2.5 * s, "rgba(255,255,255,0.12)");
+    const berry = r();
+    if (berry < 0.35) for (let i = 0; i < 4; i++) circle(c, x + (r() - 0.5) * 14 * s, y - 2 * s + (r() - 0.5) * 8 * s, 1.4 * s, "#e53935");           // red berries
+    else if (berry < 0.55) for (let i = 0; i < 4; i++) circle(c, x + (r() - 0.5) * 14 * s, y - 2 * s + (r() - 0.5) * 8 * s, 1.4 * s, "#3949ab");      // blueberries
+    else if (berry < 0.75) for (let i = 0; i < 5; i++) { const fx = x + (r() - 0.5) * 14 * s, fy = y - 3 * s + (r() - 0.5) * 8 * s; for (let k = 0; k < 4; k++) circle(c, fx + Math.cos(k * 1.57) * 1.4 * s, fy + Math.sin(k * 1.57) * 1.4 * s, 1 * s, "#fff"); circle(c, fx, fy, 0.8 * s, "#ffeb3b"); }   // white blossom
+  },
+  flower(c, x, y, s, v, r) {
+    const palette = [["#f48fb1", "#ffeb3b"], ["#ffffff", "#ffb300"], ["#ffeb3b", "#ff8f00"], ["#b39ddb", "#ffeb3b"], ["#64b5f6", "#fff176"], ["#ff8a65", "#6d4c41"]][Math.floor(r() * 6)];
+    const count = 1 + Math.floor(r() * 3);
+    for (let k = 0; k < count; k++) {
+      const fx = x + (k ? (r() - 0.5) * 14 : 0), fy = y + (k ? (r() - 0.5) * 8 : 0), fs = s * (0.7 + r() * 0.5);
+      line(c, fx, fy + 1, fx + 1, fy + 6 * fs, "#4f7f2a", 1.2);                                             // stem
+      poly(c, [[fx + 1, fy + 4 * fs], [fx + 4 * fs, fy + 2 * fs], [fx + 2 * fs, fy + 6 * fs]], "#5b8f33");  // leaf
+      const petals = 4 + Math.floor(r() * 3), rot = r() * Math.PI;
+      for (let i = 0; i < petals; i++) { const a = rot + (i / petals) * Math.PI * 2; circle(c, fx + Math.cos(a) * 3.5 * fs, fy + Math.sin(a) * 3.5 * fs, 2.6 * fs, palette[0]); }
+      circle(c, fx, fy, 2.2 * fs, palette[1]);
+    }
+  },
+  mushroom(c, x, y, s, v, r) {
+    const caps = [["#d84315", "#fff"], ["#8d6e63", "#efebe9"], ["#c62828", "#fff"]][v];
+    const n = 1 + Math.floor(r() * 3);
+    for (let k = 0; k < n; k++) {
+      const mx = x + (k ? (r() - 0.5) * 12 : 0), my = y + (k ? (r() - 0.5) * 4 : 0), ms = s * (0.6 + r() * 0.6);
+      shadow(c, mx, my + 2, 4 * ms, 1.5 * ms);
+      rect(c, mx - 1.8 * ms, my - 6 * ms, 3.6 * ms, 7 * ms, "#f5f5dc", "#bcaaa4", 0.6);
+      ellipse(c, mx, my - 6 * ms, 5.5 * ms, 3.5 * ms, caps[0], "#4e342e", 0.7);
+      if (v !== 1) for (let i = 0; i < 3; i++) circle(c, mx + (r() - 0.5) * 7 * ms, my - 7 * ms + (r() - 0.5) * 2 * ms, 0.8 * ms, caps[1]);
+    }
+  },
+  stump(c, x, y, s, v, r) {
+    shadow(c, x, y + 5 * s, 10 * s, 4 * s);
+    rect(c, x - 7 * s, y - 6 * s, 14 * s, 10 * s, "#6d4c41", "#3e2723", 1);
+    for (let i = 0; i < 4; i++) line(c, x - 7 * s + i * 4 * s + 1, y - 5 * s, x - 7 * s + i * 4 * s + 1, y + 3 * s, "#5d4037", 1);   // bark
+    ellipse(c, x, y - 6 * s, 7 * s, 3.2 * s, "#d7b899", "#3e2723", 1);                                                            // cut face
+    for (let i = 1; i <= 3; i++) { c.strokeStyle = "#a1887f"; c.lineWidth = 0.7; c.beginPath(); c.ellipse(x, y - 6 * s, 7 * s * i / 4, 3.2 * s * i / 4, 0, 0, Math.PI * 2); c.stroke(); }   // rings
+    if (r() < 0.5) { circle(c, x + 6 * s, y + 1 * s, 2 * s, "#5b8f33"); }                                                       // moss
+    if (r() < 0.4) { ellipse(c, x - 6 * s, y - 2 * s, 3 * s, 1.8 * s, "#d84315", "#4e342e", 0.6); }                              // a bracket fungus
+  },
+};
+
+// Wooden signpost at the monsters' entrance (drawn live, depth-sorted with everything else)
+export function drawSign(c, x, y) {
+  shadow(c, x, y + 12, 8, 3);
+  rect(c, x - 2, y - 20, 4, 32, "#5d4037");
+  poly(c, [[x - 18, y - 24], [x + 12, y - 24], [x + 20, y - 17], [x + 12, y - 10], [x - 18, y - 10]], "#8d6e63", "#4e342e");
+  line(c, x - 12, y - 17, x + 8, y - 17, "#3e2723", 2);
+  poly(c, [[x + 4, y - 21], [x + 10, y - 17], [x + 4, y - 13]], "#3e2723");
+  // (the red flag on top is animated, drawn each frame in draw.js)
+}
+
+// The castle you are defending
+// Style 0: a weathered grey stone keep with round corner towers under slate roofs.
+// Style 1: a warm sandstone palace with square towers, terracotta tiled roofs and a green banner.
+// Both have a gatehouse, battlements, arrow slits and a portcullis. Lit from the left, shaded on the right.
+export const CASTLE_STYLES = [
+  { light: "#b0aca4", dark: "#6e6a63", keepLight: "#a8a49c", keepDark: "#66625b", gateLight: "#9e9a92", gateDark: "#605c56", towerLight: "#b8b4ac", towerMid: "#8f8b84", towerDark: "#5a5650", roof: "#3f4a56", roofEdge: "#1f262d", roofShine: "rgba(140,160,180,0.35)", mortar: "rgba(40,36,32,0.35)", outline: "#3a3733", banner: "#1565c0", square: false },
+  { light: "#e0c9a0", dark: "#a8865a", keepLight: "#d9c094", keepDark: "#9c7a4e", gateLight: "#d4b98a", gateDark: "#93714a", towerLight: "#e6d0a8", towerMid: "#c2a06e", towerDark: "#8a6a44", roof: "#b5533a", roofEdge: "#6e2f1f", roofShine: "rgba(255,200,160,0.35)", mortar: "rgba(90,60,30,0.3)", outline: "#5a4023", banner: "#2e7d32", square: true },
+];
+function drawCastle(c, x, y, styleIndex = 0) {
+  const S = CASTLE_STYLES[styleIndex] || CASTLE_STYLES[0];
+  const stone = (x0, y0, w, h, light = S.light, dark = S.dark) => {
+    const g = c.createLinearGradient(x0, 0, x0 + w, 0);
+    g.addColorStop(0, light); g.addColorStop(1, dark);
+    rect(c, x0, y0, w, h, g, S.outline, 1.2);
+  };
+  const courses = (x0, y0, w, h, step = 7) => {               // stone block courses
+    c.strokeStyle = S.mortar; c.lineWidth = 1;
+    for (let yy = y0 + step; yy < y0 + h; yy += step) { c.beginPath(); c.moveTo(x0, yy); c.lineTo(x0 + w, yy); c.stroke(); }
+    let row = 0;
+    for (let yy = y0; yy < y0 + h; yy += step, row++) for (let xx = x0 + (row % 2) * 6 + 4; xx < x0 + w - 2; xx += 12) { c.beginPath(); c.moveTo(xx, yy); c.lineTo(xx, Math.min(yy + step, y0 + h)); c.stroke(); }
+  };
+  const battlements = (x0, y0, w, light, dark) => { for (let xx = x0; xx < x0 + w; xx += 10) stone(xx, y0 - 7, 6, 8, light, dark); };
+  const slit = (sx, sy) => { rect(c, sx - 1.2, sy, 2.4, 7, "#1b1b1b"); rect(c, sx - 2.5, sy + 2.5, 5, 2, "#1b1b1b"); };
+  const roof = (tx, ty, w, h) => {                            // conical (or, for square towers, pyramid) roof with a lit side
+    poly(c, [[tx - w, ty], [tx, ty - h], [tx + w, ty]], S.roof, S.roofEdge, 1);
+    poly(c, [[tx - w, ty], [tx, ty - h], [tx - w * 0.15, ty]], S.roofShine);
+    for (let i = 1; i < 4; i++) line(c, tx - w * (1 - i / 4), ty - h * i / 4, tx + w * (1 - i / 4), ty - h * i / 4, "rgba(0,0,0,0.25)", 1);
+    circle(c, tx, ty - h, 1.6, S.square ? "#ffd54f" : "#b0bec5");
+  };
+
+  shadow(c, x, y + 6, 58, 11);
+  // Curtain wall
+  stone(x - 44, y - 36, 88, 40);
+  courses(x - 44, y - 36, 88, 40);
+  battlements(x - 44, y - 36, 88);
+  slit(x - 24, y - 26); slit(x + 24, y - 26);
+  // Central keep rising behind the wall
+  stone(x - 16, y - 70, 32, 36, S.keepLight, S.keepDark);
+  courses(x - 16, y - 70, 32, 36);
+  if (S.square) roof(x, y - 70, 18, 16); else battlements(x - 16, y - 70, 32, S.keepLight, S.keepDark);
+  slit(x - 7, y - 62); slit(x + 7, y - 62);
+  rect(c, x - 3, y - 48, 6, 6, "#1b1b1b");                   // window
+  if (S.square) { c.fillStyle = "#1b1b1b"; c.beginPath(); c.arc(x, y - 48, 3, Math.PI, 0); c.fill(); }   // arched window top
+  // Gatehouse: arched gate, portcullis, wooden doors
+  stone(x - 13, y - 30, 26, 34, S.gateLight, S.gateDark);
+  c.fillStyle = "#1b1b1b";
+  c.beginPath(); c.arc(x, y - 12, 8, Math.PI, 0); c.lineTo(x + 8, y + 4); c.lineTo(x - 8, y + 4); c.closePath(); c.fill();
+  c.fillStyle = S.square ? "#5d4037" : "#4e342e";
+  c.beginPath(); c.arc(x, y - 12, 6.5, Math.PI, 0); c.lineTo(x + 6.5, y + 4); c.lineTo(x - 6.5, y + 4); c.closePath(); c.fill();
+  line(c, x, y - 18, x, y + 4, "#2b1b14", 1);                  // door seam
+  for (let i = -5; i <= 5; i += 2.5) line(c, x + i, y - 19, x + i, y - 8, "#263238", 1.2);   // portcullis bars
+  line(c, x - 6, y - 14, x + 6, y - 14, "#263238", 1.2);
+  circle(c, x - 2.5, y - 6, 0.8, "#ffd54f"); circle(c, x + 2.5, y - 6, 0.8, "#ffd54f");    // door rings
+  c.strokeStyle = S.square ? "#c9a977" : "#8a8680"; c.lineWidth = 1.5; c.beginPath(); c.arc(x, y - 12, 8.5, Math.PI, 0); c.stroke();   // arch stones
+  // Corner towers: round with slate cones, or square with tiled pyramid roofs
+  for (const tx of [x - 40, x + 40]) {
+    const g = c.createLinearGradient(tx - 12, 0, tx + 12, 0);
+    g.addColorStop(0, S.towerLight); g.addColorStop(0.55, S.towerMid); g.addColorStop(1, S.towerDark);
+    rect(c, tx - 12, y - 64, 24, 68, g, S.outline, 1.2);
+    courses(tx - 12, y - 64, 24, 68);
+    if (S.square) { rect(c, tx - 14, y - 66, 28, 4, S.towerLight, S.outline, 1); roof(tx, y - 66, 16, 20); }   // ledge and pyramid roof
+    else { battlements(tx - 12, y - 64, 24, S.towerLight, S.towerDark); roof(tx, y - 70, 15, 26); }
+    slit(tx, y - 54); slit(tx, y - 34);
+  }
+  // (the banner on the keep is animated, drawn each frame in draw.js)
+  // Ivy creeping up the wall
+  for (const [ix, iy] of [[x - 36, y - 10], [x - 33, y - 20], [x + 38, y - 14]]) { circle(c, ix, iy, 2.5, "#4a7a2a"); circle(c, ix + 2, iy - 3, 2, "#5b8f33"); }
+}

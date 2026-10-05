@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Yun Guard</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="wrap">
+    <header id="hud">
+      <div class="stat"><span class="icon">💰</span><b id="gold">0</b></div>
+      <div class="stat"><span class="icon">❤️</span><b id="lives">0</b></div>
+      <div class="stat"><span class="label">WAVE</span><b id="wave">0</b><span class="dim">/<span id="totalWaves">0</span></span></div>
+      <div class="stat"><span class="label">MAP</span><span class="dim">#<span id="seed">0</span></span></div>
+      <div class="spacer"></div>
+      <button id="mute" class="icon-btn" title="Sound on/off">🔊</button>
+      <button id="next">Start first wave</button>
+    </header>
+
+    <canvas id="c" width="960" height="600"></canvas>
+
+    <div id="menu"></div>
+
+    <div id="overlay">
+      <h1 id="overlayTitle"></h1>
+      <p id="overlayText"></p>
+      <button id="restart">Play again</button>
+    </div>
+
+    <div id="heroPick">
+      <h1>Choose your hero</h1>
+      <p>Only one can defend the kingdom this round.</p>
+      <div class="cards">
+        <button class="card" data-hero="april">
+          <span class="portrait">⚔️</span>
+          <strong>Lady April</strong>
+          <small>Knight. Sword and shield, tough as nails. Her dog Max fights at her side.</small>
+        </button>
+        <button class="card" data-hero="avril">
+          <span class="portrait">🏹</span>
+          <strong>Princess Avril</strong>
+          <small>Archer. Frost arrows slow monsters, and she heals friends nearby. Her eagle Sky dives from above.</small>
+        </button>
+        <button class="card" data-hero="ember">
+          <span class="portrait">🔥</span>
+          <strong>Ember</strong>
+          <small>Fire mage. Fragile, but her fireballs splash and set monsters ablaze. Her baby dragon Cinder spits fire from the sky.</small>
+        </button>
+        <button class="card" data-hero="willow">
+          <span class="portrait">🌿</span>
+          <strong>Willow</strong>
+          <small>Druid. Every few seconds her vines root every monster near her. Her bear Bramble holds the line.</small>
+        </button>
+        <button class="card" data-hero="meilin">
+          <span class="portrait">🐉</span>
+          <strong>寒 Hán</strong>
+          <small>Warrior. Cool as winter: her sword cleaves through several monsters at once. Her loong Yun 云 coils in the sky, then sweeps down the road.</small>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
