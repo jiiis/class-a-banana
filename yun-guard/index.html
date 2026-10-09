@@ -16,6 +16,13 @@
 </head>
 <body>
   <div id="wrap">
+
+    <canvas id="c" width="1440" height="840"></canvas>
+
+    <div id="menu"></div>
+
+  </div>
+
     <header id="hud">
       <div class="stat"><span class="icon">💰</span><b id="gold">0</b></div>
       <div class="stat"><span class="icon">❤️</span><b id="lives">0</b></div>
@@ -25,10 +32,6 @@
       <button id="mute" class="icon-btn" title="Sound on/off">🔊</button>
       <button id="next">Start first wave</button>
     </header>
-
-    <canvas id="c" width="960" height="600"></canvas>
-
-    <div id="menu"></div>
 
     <div id="overlay">
       <h1 id="overlayTitle"></h1>
@@ -67,7 +70,6 @@
         </button>
       </div>
     </div>
-  </div>
 
   <script type="module" src="js/main.js"></script>
 </body>

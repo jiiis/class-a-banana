@@ -20,7 +20,7 @@ export function buildBackground() {
   c.fillRect(0, Y0, W, HH);
 
   // Rolling hills: lit from the top-left, shaded toward the bottom-right, with a soft shadow at their foot
-  for (let i = 0; i < 7; i++) {
+  for (let i = 0; i < 14; i++) {
     const hx = rand() * W, hy = Y0 + rand() * HH, rx = 70 + rand() * 110, ry = rx * (0.45 + rand() * 0.2);
     ellipse(c, hx + rx * 0.12, hy + ry * 0.35, rx * 1.02, ry * 0.9, "rgba(20,60,15,0.18)");          // shadow at the foot of the hill
     const hg = c.createRadialGradient(hx - rx * 0.35, hy - ry * 0.45, 4, hx, hy, rx);
@@ -31,12 +31,12 @@ export function buildBackground() {
     ellipse(c, hx - rx * 0.1, hy - ry * 0.15, rx * 0.7, ry * 0.55, "rgba(255,255,170,0.08)");       // sun on the crest
   }
   // Sunlit patches
-  for (let i = 0; i < 30; i++) {
+  for (let i = 0; i < 60; i++) {
     ellipse(c, rand() * W, Y0 + rand() * HH, 40 + rand() * 80, 20 + rand() * 40, `rgba(255,255,160,${0.04 + rand() * 0.06})`);
   }
 
   // Thousands of tiny grass blades
-  for (let i = 0; i < 2400; i++) {
+  for (let i = 0; i < 5000; i++) {
     const x = rand() * W, y = Y0 + rand() * HH, len = 3 + rand() * 5, lean = (rand() - 0.5) * 3;
     line(c, x, y, x + lean, y - len, rand() < 0.5 ? "rgba(30,90,20,0.35)" : "rgba(170,230,110,0.35)", 1);
   }

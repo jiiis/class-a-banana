@@ -73,13 +73,13 @@ export function generateMap(seed) {
     if (ex.edge === "right" || ex.edge === "left") {
       const x = ex.edge === "right" ? W - 56 : 56;                          // hugging the edge, clear of the gate pillars
       const other = exits.find((o) => o !== ex && o.edge === ex.edge);
-      let above = c.y > 300;
+      let above = c.y > H / 2;
       if (other) { const oy = center(edgeCell(other.edge, other.pos)).y; above = c.y < oy ? (c.y >= 200 || Math.abs(oy - c.y) < 170) : (c.y > 430 && Math.abs(oy - c.y) >= 150); }
-      return { x, y: above ? c.y - 36 : c.y + 100, scale, style: i };
+      return { x, y: clamp(above ? c.y - 36 : c.y + 100, 118 * scale + 6, H - 14 * scale - 8), scale, style: i };
     }
     const other = exits.find((o) => o !== ex && o.edge === ex.edge);
     const side = other ? (c.x < center(edgeCell(other.edge, other.pos)).x ? -1 : 1) : (c.x < W / 2 ? 1 : -1);
-    return { x: clamp(c.x + side * 104, 40, W - 40), y: ex.edge === "top" ? 92 : H - 22, scale, style: i };
+    return { x: clamp(c.x + side * 104, 40, W - 40), y: ex.edge === "top" ? 118 * scale + 6 : H - 14 * scale - 8, scale, style: i };   // room for the banner above and the drawbridge below
   });
   map.castle = map.castles[0];
 
@@ -97,7 +97,7 @@ function makeRivers(rand) {
   map.rivers = [];
   map.bridges = [];
   const roll = rand();
-  const count = roll < 0.3 ? 0 : roll < 0.8 ? 1 : 2;
+  const count = roll < 0.25 ? 0 : roll < 0.65 ? 1 : roll < 0.9 ? 2 : 3;
   for (let n = 0; n < count; n++) {
     for (let attempt = 0; attempt < 20; attempt++) {
       const vertical = rand() < 0.5;
@@ -183,7 +183,7 @@ const nearWater = (p, extra) => nearRiver(p, extra) || map.ponds.some((q) => inP
 // Up to three small ponds on open grass, well away from roads, rivers, castles and signposts.
 function makePonds(rand) {
   map.ponds = [];
-  const want = rand() < 0.25 ? 0 : 1 + Math.floor(rand() * 3);
+  const want = rand() < 0.2 ? 0 : 1 + Math.floor(rand() * 4);
   for (let attempt = 0; attempt < 120 && map.ponds.length < want; attempt++) {
     const rx = 18 + rand() * 16, ry = rx * (0.55 + rand() * 0.2);
     const p = { x: 60 + rand() * (W - 120), y: 60 + rand() * (H - 120), rx, ry, seed: Math.floor(rand() * 1e6) };
@@ -230,7 +230,7 @@ function walk(rand, start, goal, { avoid = [], allowedNear = [], reserved = [], 
     const used = new Set([key(start.c, start.r), ...reserved.map((c) => key(c.c, c.r))]);
     const walked = [];
     let cur = start, lastMove = null, straight = 0;
-    for (let step = 0; step < 60; step++) {
+    for (let step = 0; step < 90; step++) {
       const nextToGoal = NEIGHBOURS.some(([dc, dr]) => cur.c + dc === goal.c && cur.r + dr === goal.r);
       if (nextToGoal) {                                                        // arrived (too early counts as a failed attempt)
         if (walked.length < minLen) break;
@@ -270,19 +270,38 @@ function walk(rand, start, goal, { avoid = [], allowedNear = [], reserved = [], 
   return null;
 }
 
-// The main road: in through one edge, a long wander, out through a different edge
+// The main road: in through one edge, a long wander, out through a different edge. To spread the road over
+// the whole map it first heads for a detour point well away from the straight line between entry and exit,
+// and a map is only accepted when the road visits every quarter of the middle block.
 function generateMainRoute(rand) {
-  for (let attempt = 0; attempt < 200; attempt++) {
+  const midC = (ROAD_MIN_COL + ROAD_MAX_COL) / 2, midR = (ROAD_MIN_ROW + ROAD_MAX_ROW) / 2;
+  for (let attempt = 0; attempt < 300; attempt++) {
     const entryEdge = EDGES[Math.floor(rand() * 4)];
     const others = EDGES.filter((e) => e !== entryEdge);
     const exitEdge = others[Math.floor(rand() * others.length)];
     const entry = { edge: entryEdge, pos: randomEdgePos(rand, entryEdge) }, exit = { edge: exitEdge, pos: randomEdgePos(rand, exitEdge) };
     const start = interiorCell(entry.edge, entry.pos), goal = interiorCell(exit.edge, exit.pos);
     if (start.c === goal.c && start.r === goal.r) continue;
-    const walked = walk(rand, start, goal, { reserved: [...marginCells(entry.edge, entry.pos), ...marginCells(exit.edge, exit.pos)], includeGoal: true, bias: 1.6, minLen: 16, attempts: 40 });
-    if (!walked) continue;
-    const cells = [...marginCells(entry.edge, entry.pos), start, ...walked, ...marginCells(exit.edge, exit.pos).reverse()];
-    if (cells.length >= 22) return { cells, entry, exit };
+    // A detour point on the far side of the map from the start-to-goal line
+    const dx = goal.c - start.c, dy = goal.r - start.r, len = Math.hypot(dx, dy) || 1, nx = -dy / len, ny = dx / len;
+    const side = (midC - start.c) * nx + (midR - start.r) * ny >= 0 ? 1 : -1;      // toward the centre
+    const detour = {
+      c: Math.round(Math.min(ROAD_MAX_COL - 1, Math.max(ROAD_MIN_COL + 1, (start.c + goal.c) / 2 + nx * side * 4 + (rand() - 0.5) * 4))),
+      r: Math.round(Math.min(ROAD_MAX_ROW - 1, Math.max(ROAD_MIN_ROW + 1, (start.r + goal.r) / 2 + ny * side * 3 + (rand() - 0.5) * 2))),
+    };
+    const reserved = [...marginCells(entry.edge, entry.pos), ...marginCells(exit.edge, exit.pos)];
+    const first = walk(rand, start, detour, { reserved, includeGoal: true, bias: 1.6, minLen: 6, attempts: 20 });
+    if (!first) continue;
+    const sofar = [start, ...first];
+    const second = walk(rand, detour, goal, { avoid: sofar.slice(0, -1), reserved, includeGoal: true, bias: 1.6, minLen: 6, attempts: 20 });
+    if (!second) continue;
+    const cells = [...marginCells(entry.edge, entry.pos), ...sofar, ...second, ...marginCells(exit.edge, exit.pos).reverse()];
+    if (cells.length < 34) continue;
+    // The road must visit every one of six blocks (3 across, 2 down) of the middle, so no big area is left empty
+    const bw = (ROAD_MAX_COL - ROAD_MIN_COL + 1) / 3, bh = (ROAD_MAX_ROW - ROAD_MIN_ROW + 1) / 2;
+    const blocks = new Set(cells.filter((c) => inInterior(c.c, c.r)).map((c) => Math.floor((c.c - ROAD_MIN_COL) / bw) + 3 * Math.floor((c.r - ROAD_MIN_ROW) / bh)));
+    if (blocks.size < 6) continue;
+    return { cells, entry, exit };
   }
   // Fallback: a plain left-to-right zigzag (practically never needed)
   const cells = [...Array(COLS)].map((_, c) => ({ c, r: 4 + (c >= 2 && c <= 13 && c % 4 < 2 ? 0 : 1) }));
@@ -406,7 +425,7 @@ function pickSpots(cells, rand) {
   shuffle(candidates, rand);
   const spots = [];
   for (const p of candidates) {
-    if (spots.length >= 12) break;
+    if (spots.length >= 20) break;
     if (spots.every((s) => dist(s, p) >= 100)) spots.push(p);
   }
   return spots;
@@ -425,7 +444,7 @@ function clear(p, { road = 50, spots = 48, castle = 85, entry = 50, deco = 0, cr
 function scatterDeco(rand) {
   const out = [];
   map.deco = out;
-  for (let i = 0; i < 400 && out.length < 24; i++) {
+  for (let i = 0; i < 700 && out.length < 48; i++) {
     const p = { x: 20 + rand() * (W - 40), y: 20 + rand() * (H - 40) };
     if (!clear(p, { deco: 40 })) continue;
     const roll = rand();
@@ -442,7 +461,7 @@ const ANIMAL_ODDS = [["bunny", 0.28], ["sheep", 0.24], ["chicken", 0.18], ["deer
 function placeCritters(rand) {
   const out = [];
   map.critters = out;
-  const count = 3 + Math.floor(rand() * 5);                        // 3 to 7 animals
+  const count = 5 + Math.floor(rand() * 6);                        // 5 to 10 animals
   for (let i = 0; i < 400 && out.length < count; i++) {
     const p = { x: 40 + rand() * (W - 80), y: 40 + rand() * (H - 80) };
     if (!clear(p, { road: 70, spots: 55, deco: 32, critters: 60, river: 50 })) continue;

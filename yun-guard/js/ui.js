@@ -84,13 +84,12 @@ export function openMenu(spotIndex) {
   const menu = $("menu");
   menu.innerHTML = html;
   menu.style.display = "block";
-  const hudH = $("hud").offsetHeight;
   const mw = menu.offsetWidth, mh = menu.offsetHeight;
   // Prefer below the spot; flip above if that runs off the board; always stay inside it
   let top = s.y + 30;
   if (top + mh > H - 4) top = s.y - mh - 34;
   menu.style.left = `${clamp(s.x - mw / 2, 4, W - mw - 4)}px`;
-  menu.style.top = `${hudH + clamp(top, 4, H - mh - 4)}px`;
+  menu.style.top = `${clamp(top, 4, H - mh - 4)}px`;
 }
 
 export function closeMenu() {
@@ -139,20 +138,20 @@ function handleMenuClick(ev) {
 }
 
 // Scale the whole board to fill the browser window.
-// The board is shown at a fixed, readable zoom: never smaller than its natural size, larger only when the
-// window has room for the whole thing. When it doesn't fit, the player drags to look around (see touch.js).
+// The board always fills the screen: shown at its natural size, or scaled up (never down) when the window is
+// larger than it. Whatever sticks out past the screen is reached by dragging (see touch.js).
 export const view = { k: 1, panX: 0, panY: 0, mobile: false };
+const hudH = () => $("hud").offsetHeight;
 export function fitToWindow() {
-  const fullH = $("hud").offsetHeight + H;
   view.mobile = window.matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 1;
-  view.k = Math.max(1, Math.min(window.innerWidth / W, window.innerHeight / fullH));
+  document.documentElement.style.setProperty("--hud", `${hudH()}px`);
+  view.k = Math.max(1, window.innerWidth / W, (window.innerHeight - hudH()) / H);   // cover the screen
   applyView();
 }
-export const canPan = () => W * view.k > window.innerWidth || ($("hud").offsetHeight + H) * view.k > window.innerHeight;
+export const canPan = () => W * view.k > window.innerWidth + 1 || H * view.k > window.innerHeight - hudH() + 1;
 export function panBy(dx, dy) { view.panX += dx; view.panY += dy; applyView(); }
 function applyView() {
-  const fullH = $("hud").offsetHeight + H, bw = W * view.k, bh = fullH * view.k;
-  const maxX = Math.max(0, (bw - window.innerWidth) / 2), maxY = Math.max(0, (bh - window.innerHeight) / 2);   // never pan past the board's edge
+  const maxX = Math.max(0, (W * view.k - window.innerWidth) / 2), maxY = Math.max(0, (H * view.k - (window.innerHeight - hudH())) / 2);   // never pan past the board's edge
   view.panX = clamp(view.panX, -maxX, maxX); view.panY = clamp(view.panY, -maxY, maxY);
   $("wrap").style.transform = `translate(calc(-50% + ${view.panX}px), calc(-50% + ${view.panY}px)) scale(${view.k})`;
 }

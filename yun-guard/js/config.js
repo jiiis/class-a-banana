@@ -2,8 +2,8 @@
 //  GAME SETTINGS - change these to make the game your own!
 // ============================================================
 
-export const W = 960;
-export const H = 600;
+export const W = 1440;                  // a bigger world than the screen: you pan around it
+export const H = 840;
 
 export const START_GOLD = 400;
 export const START_LIVES = 20;
@@ -17,8 +17,8 @@ export const SPOT_RADIUS = 19;          // size of the stone build pads
 // The world is generated randomly on a grid every time the game starts (see map.js).
 // The road, build spots, scenery and animals all come from that generator.
 export const CELL = 60;                 // grid cell size in pixels
-export const COLS = W / CELL;           // 16
-export const ROWS = H / CELL;           // 10
+export const COLS = W / CELL;           // 24
+export const ROWS = H / CELL;           // 14
 
 // Tower types. "physical" damage is reduced by armour, "magic" is not.
 export const TOWERS = {
