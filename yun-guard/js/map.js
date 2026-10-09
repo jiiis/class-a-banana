@@ -163,7 +163,7 @@ function makeRivers(rand) {
         }
         pts.push({ x: join.x + nx * join.w * 0.1, y: join.y + ny * join.w * 0.1 });     // end just inside the river's water so the two merge
         smoothPoints(pts, 2);
-        const trib = finishRiver(pts, rand, { base: river.base * (0.55 + rand() * 0.2), taper: true, parent: river, joinAt: join });
+        const trib = finishRiver(pts, rand, { base: river.base * (0.7 + rand() * 0.15), taper: true, parent: river, joinAt: join });
         if (trib) { river.tributary = trib; break; }
       }
     }
@@ -188,7 +188,7 @@ function finishRiver(pts, rand, { base, taper = false, parent = null, joinAt = n
     const wave = 0.5 + 0.5 * Math.sin(i * f1 + p1);
     const ripple = 0.5 + 0.5 * Math.sin(i * f2 + p2);
     p.w = base * (0.78 + wave * 0.3 + ripple * 0.14) + (rand() - 0.5) * 3;   // gentle variation along the course
-    if (taper) p.w *= 0.7 + 0.4 * (i / (pts.length - 1));                    // a stream grows as it nears the river
+    if (taper) p.w *= 0.85 + 0.25 * (i / (pts.length - 1));                  // a stream grows a little as it nears the river
   });
   if (!taper) {
     const pools = 1 + Math.floor(rand() * 2);
@@ -198,7 +198,7 @@ function finishRiver(pts, rand, { base, taper = false, parent = null, joinAt = n
     }
   }
   for (let pass = 0; pass < 2; pass++) for (let i = 1; i < pts.length - 1; i++) pts[i].w = (pts[i - 1].w + pts[i].w + pts[i + 1].w) / 3;
-  pts.forEach((p) => { p.w = Math.max(taper ? 16 : 24, Math.min(80, p.w)); });
+  pts.forEach((p) => { p.w = Math.max(taper ? 22 : 26, Math.min(80, p.w)); });
   const river = { points: pts, width: Math.max(...pts.map((p) => p.w)), base, parent };   // width = the widest point (used for clearances)
   // Wherever the water so much as touches the road there must be a bridge. Walk along the river,
   // note every stretch that comes within reach of the road, and reject rivers that run alongside
