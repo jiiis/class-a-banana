@@ -448,7 +448,8 @@ function pickSpots(cells, rand) {
       const p = center({ c, r });
       // Keep clear of the castle's whole footprint (it is tall) and the signposts
       if (map.castles.some((k) => { const cdx = p.x - k.x, cdy = p.y - k.y; return Math.abs(cdx) < 92 * k.scale && cdy > -135 * k.scale && cdy < 42 * k.scale; })) continue;
-      if (map.entries.some((e) => dist(p, e) < 55)) continue;
+      if (map.entries.some((e) => dist(p, e) < 55 || dist(p, { x: e.rx, y: e.ry }) < 78)) continue;   // not on the signpost or the lair stakes
+      if (map.exits.some((g) => dist(p, g) < 78)) continue;                                        // not on the exit gate
       if (nearWater(p, 30)) continue;                                        // no building in the water
       candidates.push(p);
     }
