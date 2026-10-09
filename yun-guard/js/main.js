@@ -11,6 +11,7 @@ import { createTower, setRally } from "./towers.js";
 import { initCritters } from "./critters.js";
 import { initHero, sendHero, selectedHero, selectHero, deselectHeroes, heroAt } from "./hero.js";
 import { initTouch } from "./touch.js";
+import { icon } from "./icons.js";
 import { unlockAudio, toggleMute, isMuted, sfx } from "./audio.js";
 import { initWeather } from "./weather.js";
 
@@ -76,8 +77,8 @@ canvas.addEventListener("mouseleave", () => { state.hover = null; state.hoverCri
 // Sound: browsers need a click or key press before audio may start
 for (const evt of ["pointerdown", "keydown"]) window.addEventListener(evt, unlockAudio);
 const muteBtn = document.getElementById("mute");
-muteBtn.textContent = isMuted() ? "🔇" : "🔊";
-muteBtn.addEventListener("click", () => { muteBtn.textContent = toggleMute() ? "🔇" : "🔊"; });
+muteBtn.innerHTML = icon(isMuted() ? "volumeOff" : "volume");
+muteBtn.addEventListener("click", () => { muteBtn.innerHTML = icon(toggleMute() ? "volumeOff" : "volume"); });
 // Keyboard: 1 selects the hero (press again to deselect), Escape deselects everything
 window.addEventListener("keydown", (ev) => {
   const hero = state.heroes[0];

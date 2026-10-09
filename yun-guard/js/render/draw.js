@@ -274,7 +274,7 @@ export function draw() {
     drawTower(t);
     if (t.level > 1) {
       ctx.fillStyle = "#ffd54f"; ctx.font = "11px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.fillText(t.ability ? "★★★ " + (abilityDef(t)?.emoji || "") : "★".repeat(t.level), t.x, t.y + 34);
+      ctx.fillText("★".repeat(t.level), t.x, t.y + 34);
     }
   } });
   for (const t of state.towers) for (const s of t.soldiers) if (s.hp > 0) actors.push({ y: s.y, draw: () => drawSoldier(s) });

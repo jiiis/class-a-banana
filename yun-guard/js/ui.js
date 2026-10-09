@@ -3,6 +3,7 @@ import { TOWERS, TOTAL_WAVES, W, H } from "./config.js";
 import { map } from "./map.js";
 import { towerRange, towerDamage, upgradeCost, sellValue, canUpgrade, canSpecialise, abilityCost, abilityDef, soldierCount, soldierHp, soldierDamage, createTower } from "./towers.js";
 import { ABILITIES } from "./config.js";
+import { icon, applyIcons } from "./icons.js";
 import { clamp } from "./util.js";
 import { sfx } from "./audio.js";
 
@@ -47,7 +48,7 @@ export function openMenu(spotIndex) {
   let html = "";
   if (tower) {
     const ab = abilityDef(tower);
-    html += `<div class="head"><span class="title">${tower.def.emoji} ${ab ? ab.name : tower.def.name}</span><span class="lv">${ab ? ab.emoji + " " : ""}Lv ${tower.level}</span></div>`;
+    html += `<div class="head"><span class="title">${icon(tower.def.icon)} ${ab ? ab.name : tower.def.name}</span><span class="lv">${ab ? icon(ab.icon) + " " : ""}Lv ${tower.level}</span></div>`;
     const stat = (label, value) => `<span class="stat"><small>${label}</small><b>${value}</b></span>`;
     html += `<div class="stats">` + (tower.def.soldiers
       ? stat("Damage", soldierDamage(tower)) + stat("Health", soldierHp(tower)) + stat("Soldiers", soldierCount(tower))
@@ -63,23 +64,23 @@ export function openMenu(spotIndex) {
       for (const key in ABILITIES[tower.type]) {
         const a = ABILITIES[tower.type][key];
         html += `<button class="tile" data-action="ability" data-ability="${key}" data-cost="${c}" data-desc="${a.desc}" ${state.gold < c ? "disabled" : ""}>
-          <span class="ico">${a.emoji}</span><span class="nm">${a.name}</span><span class="cost">${c}</span></button>`;
+          <span class="big">${icon(a.icon)}</span><span class="nm">${a.name}</span><span class="cost">${c}</span></button>`;
       }
       html += `</div><div class="hint">Hover an ability to see what it does</div><div class="row">`;
     } else html += `<button class="pill" disabled>Max level</button>`;
-    if (tower.def.soldiers) html += `<button class="pill" data-action="rally" title="Move rally point">🚩</button>`;
+    if (tower.def.soldiers) html += `<button class="pill" data-action="rally" title="Move rally point">${icon("flag")}</button>`;
     html += `<button class="pill sell" data-action="sell">Sell <b>+${sellValue(tower)}</b></button>`;
     html += `</div>`;
   } else {
-    html += `<div class="head"><span class="title">Build</span><span class="lv">💰 ${state.gold}</span></div><div class="grid">`;
+    html += `<div class="head"><span class="title">Build</span><span class="lv">${icon("coins")} ${state.gold}</span></div><div class="grid">`;
     for (const key in TOWERS) {
       const d = TOWERS[key];
       html += `<button class="tile" data-action="build" data-type="${key}" data-cost="${d.cost}" data-desc="${d.desc}" ${state.gold < d.cost ? "disabled" : ""}>
-        <span class="ico">${d.emoji}</span><span class="nm">${d.short || d.name}</span><span class="cost">${d.cost}</span></button>`;
+        <span class="big">${icon(d.icon)}</span><span class="nm">${d.short || d.name}</span><span class="cost">${d.cost}</span></button>`;
     }
     html += `</div><div class="hint">Pick a tower</div>`;
   }
-  html += `<button class="x" data-action="close" title="Close">✕</button>`;
+  html += `<button class="x" data-action="close" title="Close">${icon("x")}</button>`;
 
   const menu = $("menu");
   menu.innerHTML = html;
@@ -158,6 +159,7 @@ function applyView() {
 
 export function initUi() {
   $("totalWaves").textContent = TOTAL_WAVES;
+  applyIcons();
   $("menu").addEventListener("click", handleMenuClick);
   $("menu").addEventListener("mouseover", (ev) => {                 // hovering a tile shows what that tower does
     const tile = ev.target.closest(".tile"), hint = $("menu").querySelector(".hint");

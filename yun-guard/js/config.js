@@ -22,37 +22,37 @@ export const ROWS = H / CELL;           // 14
 
 // Tower types. "physical" damage is reduced by armour, "magic" is not.
 export const TOWERS = {
-  archer:   { name: "Archer Tower", short: "Archer", emoji: "🏹", cost: 70,  range: 115, damage: 10, rate: 1.7,  type: "physical", color: "#8bc34a", desc: "Fast arrows. Weak vs armour." },
-  mage:     { name: "Mage Tower",   short: "Mage", emoji: "🔮", cost: 100, range: 105, damage: 26, rate: 0.85, type: "magic",    color: "#b388ff", desc: "Magic ignores armour." },
-  cannon:   { name: "Cannon",       short: "Cannon", emoji: "💣", cost: 125, range: 125, damage: 36, rate: 0.5,  type: "physical", color: "#6d4c41", desc: "Slow, but hits a whole group.", splash: 48 },
+  archer:   { name: "Archer Tower", short: "Archer", icon: "bow", cost: 70,  range: 115, damage: 10, rate: 1.7,  type: "physical", color: "#8bc34a", desc: "Fast arrows. Weak vs armour." },
+  mage:     { name: "Mage Tower",   short: "Mage", icon: "sparkles", cost: 100, range: 105, damage: 26, rate: 0.85, type: "magic",    color: "#b388ff", desc: "Magic ignores armour." },
+  cannon:   { name: "Cannon",       short: "Cannon", icon: "bomb", cost: 125, range: 125, damage: 36, rate: 0.5,  type: "physical", color: "#6d4c41", desc: "Slow, but hits a whole group.", splash: 48 },
   // Lightning Spire: chain lightning leaps from the first monster to the next few nearby (one more hop per level). Reaches flyers.
-  tesla:    { name: "Lightning Spire", short: "Spire", emoji: "⚡", cost: 140, range: 110, damage: 24, rate: 0.6, type: "magic", color: "#4fc3f7", desc: "Chain lightning jumps between monsters.", chain: 3, chainRange: 70, chainFalloff: 0.75 },
+  tesla:    { name: "Lightning Spire", short: "Spire", icon: "zap", cost: 140, range: 110, damage: 24, rate: 0.6, type: "magic", color: "#4fc3f7", desc: "Chain lightning jumps between monsters.", chain: 3, chainRange: 70, chainFalloff: 0.75 },
   // Barracks: range = how far away the soldiers' rally point can be. damage/rate = each soldier's attack.
-  barracks: { name: "Barracks",     short: "Barracks", emoji: "🛡️", cost: 90,  range: 90,  damage: 6,  rate: 1,    type: "physical", color: "#ef9a9a", desc: "Soldiers block the road.", soldiers: 2, soldierHp: 80 },
+  barracks: { name: "Barracks",     short: "Barracks", icon: "shield", cost: 90,  range: 90,  damage: 6,  rate: 1,    type: "physical", color: "#ef9a9a", desc: "Soldiers block the road.", soldiers: 2, soldierHp: 80 },
 };
 export const MAX_LEVEL = 4;
 // Level 4 is a specialisation: at level 3 you pick one of two abilities. Each tower type has its own pair.
 export const ABILITY_COST_FACTOR = 1.2;   // ability price = tower cost × this
 export const ABILITIES = {
   archer: {
-    volley: { name: "Rapid Volley", emoji: "🏹", desc: "Every archer looses two arrows at once." },
-    poison: { name: "Venom Arrows", emoji: "☠️", desc: "Arrows poison: 7 dmg/s for 4s, ignores armour, slows 15%.", poison: { time: 4, dps: 7, slow: 0.15 } },
+    volley: { name: "Rapid Volley", icon: "chevrons", desc: "Every archer looses two arrows at once." },
+    poison: { name: "Venom Arrows", icon: "skull", desc: "Arrows poison: 7 dmg/s for 4s, ignores armour, slows 15%.", poison: { time: 4, dps: 7, slow: 0.15 } },
   },
   mage: {
-    storm:  { name: "Arcane Storm", emoji: "🌀", desc: "Bolts burst on impact, hitting everything within 36.", splash: 36 },
-    curse:  { name: "Curse", emoji: "💀", desc: "Cursed monsters take 40% more damage from everything for 4s.", curse: { time: 4, factor: 1.4 } },
+    storm:  { name: "Arcane Storm", icon: "tornado", desc: "Bolts burst on impact, hitting everything within 36.", splash: 36 },
+    curse:  { name: "Curse", icon: "skull", desc: "Cursed monsters take 40% more damage from everything for 4s.", curse: { time: 4, factor: 1.4 } },
   },
   cannon: {
-    cluster:{ name: "Cluster Bombs", emoji: "💥", desc: "Each shell scatters 3 bomblets around the impact.", bomblets: 3, bombletDamage: 0.45, bombletSplash: 30 },
-    napalm: { name: "Napalm", emoji: "🔥", desc: "Shells leave burning ground for 4s: 10 dmg/s to anything walking through.", fire: { time: 4, dps: 10, radius: 40 } },
+    cluster:{ name: "Cluster Bombs", icon: "burst", desc: "Each shell scatters 3 bomblets around the impact.", bomblets: 3, bombletDamage: 0.45, bombletSplash: 30 },
+    napalm: { name: "Napalm", icon: "flame", desc: "Shells leave burning ground for 4s: 10 dmg/s to anything walking through.", fire: { time: 4, dps: 10, radius: 40 } },
   },
   barracks: {
-    paladin:{ name: "Paladins", emoji: "✨", desc: "Soldiers get +50% health, 30% armour and heal 5/s even in battle.", hpFactor: 1.5, armor: 0.3, regen: 5 },
-    berserk:{ name: "Berserkers", emoji: "🪓", desc: "Soldiers hit 60% harder, 30% faster, and every swing cleaves nearby monsters.", damageFactor: 1.6, rateFactor: 1.3, cleave: 26 },
+    paladin:{ name: "Paladins", icon: "shieldCheck", desc: "Soldiers get +50% health, 30% armour and heal 5/s even in battle.", hpFactor: 1.5, armor: 0.3, regen: 5 },
+    berserk:{ name: "Berserkers", icon: "axe", desc: "Soldiers hit 60% harder, 30% faster, and every swing cleaves nearby monsters.", damageFactor: 1.6, rateFactor: 1.3, cleave: 26 },
   },
   tesla: {
-    overcharge: { name: "Overcharge", emoji: "⚡", desc: "Lightning makes 3 more hops and leaps 40% further.", extraHops: 3, rangeFactor: 1.4 },
-    field:  { name: "Static Field", emoji: "🌩️", desc: "Everything in range is slowed 25% and zapped for 4 dmg/s.", field: { slow: 0.25, dps: 4 } },
+    overcharge: { name: "Overcharge", icon: "zap", desc: "Lightning makes 3 more hops and leaps 40% further.", extraHops: 3, rangeFactor: 1.4 },
+    field:  { name: "Static Field", icon: "radio", desc: "Everything in range is slowed 25% and zapped for 4 dmg/s.", field: { slow: 0.25, dps: 4 } },
   },
 };
 // Level 3 archer towers shoot fire arrows: the monster keeps burning after the hit.

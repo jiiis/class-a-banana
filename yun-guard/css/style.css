@@ -56,7 +56,9 @@ html, body {
   border-radius: 6px;
   font-weight: 600;
 }
-.stat .icon { font-size: 16px; }
+.stat .icon { display: inline-flex; color: var(--accent); }
+.ico { width: 1.1em; height: 1.1em; vertical-align: -0.2em; }
+#hud .icon-btn .ico { width: 20px; height: 20px; display: block; }
 .stat .label { font-size: 11px; color: var(--muted); letter-spacing: 1.5px; }
 .stat .dim { color: var(--muted); font-weight: 400; }
 .spacer { flex: 1; }
@@ -134,7 +136,9 @@ canvas { display: block; }
 }
 #menu .tile:hover { background: rgba(255, 255, 255, 0.12); border-color: var(--accent); transform: translateY(-1px); filter: none; }
 #menu .tile:disabled { opacity: 0.35; transform: none; }
-#menu .tile .ico { font-size: 20px; line-height: 1; }
+#menu .tile .big { display: inline-flex; color: var(--accent); }
+#menu .tile .big .ico { width: 22px; height: 22px; }
+#menu .x .ico { width: 12px; height: 12px; vertical-align: 0; }
 #menu .tile .cost { color: var(--accent); font-size: 11px; font-weight: 700; }
 #menu .tile .cost::before { content: "◆ "; font-size: 8px; vertical-align: 1px; }
 #menu .hint { min-height: 15px; margin-top: 7px; padding: 0 2px; color: var(--muted); font-size: 11px; text-align: center; }
@@ -187,7 +191,12 @@ canvas { display: block; }
   transition: transform 0.12s, border-color 0.12s;
 }
 #heroPick .card:hover { transform: translateY(-4px); border-color: var(--accent); filter: none; }
-#heroPick .card .portrait { font-size: 44px; }
+#heroPick .card .portrait { display: inline-flex; color: var(--accent); }
+#heroPick .card .portrait .ico { width: 44px; height: 44px; }
+#heroPick .card[data-hero="avril"] .portrait { color: #f06292; }
+#heroPick .card[data-hero="ember"] .portrait { color: #ff7043; }
+#heroPick .card[data-hero="willow"] .portrait { color: #8bc34a; }
+#heroPick .card[data-hero="meilin"] .portrait { color: #80deea; }
 #heroPick .card strong { font-size: 18px; }
 #heroPick .card small { color: var(--muted); font-size: 12px; font-weight: 400; line-height: 1.4; }
 #heroPick .card[data-hero="avril"] { border-top-color: #f06292; }
