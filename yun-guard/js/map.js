@@ -124,7 +124,8 @@ function makeRivers(rand) {
   const roll = rand();
   const count = roll < 0.1 ? 0 : roll < 0.45 ? 1 : roll < 0.8 ? 2 : 3;      // a big world usually has a river or two
   for (let n = 0; n < count; n++) {
-    for (let attempt = 0; attempt < 240; attempt++) {
+    let river = null;
+    for (let attempt = 0; attempt < 240 && !river; attempt++) {
       const vertical = rand() < 0.5;
       const pts = [];
       // Meandering course: a slow S-curve plus random wander, sampled closely so bends are smooth
@@ -136,56 +137,97 @@ function makeRivers(rand) {
         let y = 80 + rand() * (H - 160);
         for (let x = -30; x <= W + 30; x += 30) { y = Math.max(60, Math.min(H - 60, y + (rand() - 0.5) * 36)); pts.push({ x, y: y + Math.sin(x * meanderFreq + meanderPhase) * meanderAmp * 0.3 }); }
       }
-      for (let pass = 0; pass < 3; pass++)                         // smooth the bends
-        for (let i = 1; i < pts.length - 1; i++) pts[i] = { x: (pts[i - 1].x + pts[i].x + pts[i + 1].x) / 3, y: (pts[i - 1].y + pts[i].y + pts[i + 1].y) / 3 };
-      const tooClose = pts.some((p) => map.castles.some((k) => dist(p, k) < 95) || map.entries.some((e) => dist(p, e) < 60))
-        || map.rivers.some((r) => pts.some((p) => closestPointOnPath(r.points, p).d < 80));
-      if (tooClose) continue;
-      // Width changes a lot along the course: narrow rapids, broad slow stretches, and one or two pond-like pools
-      const base = 26 + rand() * 20, p1 = rand() * 6, p2 = rand() * 6, f1 = 0.35 + rand() * 0.3, f2 = 0.9 + rand() * 0.6;
-      pts.forEach((p, i) => {
-        const wave = 0.5 + 0.5 * Math.sin(i * f1 + p1);
-        const ripple = 0.5 + 0.5 * Math.sin(i * f2 + p2);
-        p.w = base * (0.45 + 1.0 * wave * 0.75 + ripple * 0.35) + (rand() - 0.5) * 5;
-      });
-      const pools = 1 + Math.floor(rand() * 2);
-      for (let k = 0; k < pools; k++) {                            // a pool: the river balloons out over a few points
-        const at = 3 + Math.floor(rand() * (pts.length - 6)), bulge = 22 + rand() * 26;
-        for (let i = -3; i <= 3; i++) if (pts[at + i]) pts[at + i].w += bulge * Math.exp(-i * i / 2.2);
-      }
-      for (let pass = 0; pass < 2; pass++) for (let i = 1; i < pts.length - 1; i++) pts[i].w = (pts[i - 1].w + pts[i].w + pts[i + 1].w) / 3;
-      pts.forEach((p) => { p.w = Math.max(10, Math.min(96, p.w)); });
-      const river = { points: pts, width: Math.max(...pts.map((p) => p.w)) };   // width = the widest point (used for clearances)
-      // Wherever the water so much as touches the road there must be a bridge. Walk along the river,
-      // note every stretch that comes within reach of the road, and reject rivers that run alongside
-      // the road at a shallow angle (they would need an endless bridge).
-      const bridges = [], nearMisses = [];
-      let shallow = false;
-      for (let i = 0; i < pts.length - 1 && !shallow; i++) {
-        const a = pts[i], b = pts[i + 1], len = dist(a, b);
-        const tx = (b.x - a.x) / len, ty = (b.y - a.y) / len;
-        for (let d = 0; d < len; d += 6) {
-          const p = { x: a.x + tx * d, y: a.y + ty * d }, w = a.w + (b.w - a.w) * (d / len);
-          const q = nearestRoadPoint(p);
-          if (q.d > ROAD_WIDTH / 2 + w / 2 + 6) {
-            if (q.d < ROAD_WIDTH / 2 + w / 2 + 36) nearMisses.push(q);   // brushing past the road without crossing it
-            continue;
-          }
-          const cross = Math.abs(tx * q.ny - ty * q.nx);              // sin of the angle between river and road
-          if (cross < 0.5) { shallow = true; break; }
-          const near = bridges.find((bg) => dist(bg, q) < 50);
-          if (near) { near.n++; near.span = Math.max(near.span, w + 24); }
-          else bridges.push({ x: q.x, y: q.y, angle: Math.atan2(q.ny, q.nx), span: w + 24, n: 1 });
+      smoothPoints(pts, 3);
+      river = finishRiver(pts, rand, { base: 26 + rand() * 20 });
+    }
+    if (!river) continue;
+    // Maybe a tributary: a narrower stream from a map edge that winds in and joins this river
+    if (rand() < 0.65) {
+      for (let attempt = 0; attempt < 40; attempt++) {
+        const main = river.points;
+        const j = Math.floor(main.length * (0.25 + rand() * 0.5)), join = main[j];
+        const a = main[j - 1], b = main[j + 1], tx = b.x - a.x, ty = b.y - a.y, tl = Math.hypot(tx, ty) || 1;
+        const side = rand() < 0.5 ? 1 : -1, bnx = (-ty / tl) * side, bny = (tx / tl) * side;   // which bank it comes in from
+        // It meets the river at a slant, 15° to 70° off the river's own direction, like a real confluence
+        const theta = (15 + rand() * 55) * Math.PI / 180, along = rand() < 0.5 ? 1 : -1;
+        const nx = bnx * Math.sin(theta) + (tx / tl) * along * Math.cos(theta), ny = bny * Math.sin(theta) + (ty / tl) * along * Math.cos(theta);
+        // Start on whichever map edge lies in that direction
+        const tEdge = Math.min(nx > 0 ? (W + 30 - join.x) / nx : nx < 0 ? (-30 - join.x) / nx : Infinity, ny > 0 ? (H + 30 - join.y) / ny : ny < 0 ? (-30 - join.y) / ny : Infinity);
+        if (!isFinite(tEdge) || tEdge < 220) continue;                     // too short to look like a stream
+        const start = { x: join.x + nx * tEdge, y: join.y + ny * tEdge };
+        const steps = Math.max(8, Math.round(tEdge / 30)), amp = 30 + rand() * 40, freq = 0.5 + rand() * 0.5, ph = rand() * 6;
+        const pts = [];
+        for (let k = 0; k <= steps; k++) {
+          const t = k / steps, wob = Math.sin(k * freq + ph) * amp * Math.sin(t * Math.PI) + (rand() - 0.5) * 20 * Math.sin(t * Math.PI);
+          pts.push({ x: start.x + (join.x - start.x) * t - ny * wob, y: start.y + (join.y - start.y) * t + nx * wob });
         }
+        pts.push({ x: join.x + nx * join.w * 0.1, y: join.y + ny * join.w * 0.1 });     // end just inside the river's water so the two merge
+        smoothPoints(pts, 2);
+        const trib = finishRiver(pts, rand, { base: river.base * (0.55 + rand() * 0.2), taper: true, parent: river, joinAt: join });
+        if (trib) { river.tributary = trib; break; }
       }
-      if (shallow) continue;
-      // A river may hug the road only right where it crosses (the bridge approaches); anywhere else it must keep its distance
-      if (nearMisses.some((q) => !bridges.some((bg) => dist(bg, q) < 80))) continue;
-      map.rivers.push(river);
-      map.bridges.push(...bridges);
-      break;
     }
   }
+}
+
+function smoothPoints(pts, passes) {
+  for (let pass = 0; pass < passes; pass++)
+    for (let i = 1; i < pts.length - 1; i++) pts[i] = { x: (pts[i - 1].x + pts[i].x + pts[i + 1].x) / 3, y: (pts[i - 1].y + pts[i].y + pts[i + 1].y) / 3 };
+}
+
+// Give a course its widths, check it fits the map (clear of castles, lairs and other water; crossing roads
+// only squarely, with a bridge) and register it. Returns the river, or null if it doesn't fit.
+function finishRiver(pts, rand, { base, taper = false, parent = null, joinAt = null }) {
+  const tooClose = pts.some((p) => map.castles.some((k) => dist(p, k) < 95) || map.entries.some((e) => dist(p, e) < 60))
+    || map.rivers.some((r) => r !== parent && pts.some((p) => closestPointOnPath(r.points, p).d < 80))
+    || (parent && pts.some((p) => dist(p, joinAt) > 150 && closestPointOnPath(parent.points, p).d < 70));   // a tributary keeps its distance until it joins
+  if (tooClose) return null;
+  // Width changes a lot along the course: narrow rapids, broad slow stretches, and one or two pond-like pools
+  const p1 = rand() * 6, p2 = rand() * 6, f1 = 0.35 + rand() * 0.3, f2 = 0.9 + rand() * 0.6;
+  pts.forEach((p, i) => {
+    const wave = 0.5 + 0.5 * Math.sin(i * f1 + p1);
+    const ripple = 0.5 + 0.5 * Math.sin(i * f2 + p2);
+    p.w = base * (0.78 + wave * 0.3 + ripple * 0.14) + (rand() - 0.5) * 3;   // gentle variation along the course
+    if (taper) p.w *= 0.7 + 0.4 * (i / (pts.length - 1));                    // a stream grows as it nears the river
+  });
+  if (!taper) {
+    const pools = 1 + Math.floor(rand() * 2);
+    for (let k = 0; k < pools; k++) {                            // a pool: the river balloons out over a few points
+      const at = 3 + Math.floor(rand() * (pts.length - 6)), bulge = 10 + rand() * 14;
+      for (let i = -3; i <= 3; i++) if (pts[at + i]) pts[at + i].w += bulge * Math.exp(-i * i / 2.2);
+    }
+  }
+  for (let pass = 0; pass < 2; pass++) for (let i = 1; i < pts.length - 1; i++) pts[i].w = (pts[i - 1].w + pts[i].w + pts[i + 1].w) / 3;
+  pts.forEach((p) => { p.w = Math.max(taper ? 16 : 24, Math.min(80, p.w)); });
+  const river = { points: pts, width: Math.max(...pts.map((p) => p.w)), base, parent };   // width = the widest point (used for clearances)
+  // Wherever the water so much as touches the road there must be a bridge. Walk along the river,
+  // note every stretch that comes within reach of the road, and reject rivers that run alongside
+  // the road at a shallow angle (they would need an endless bridge).
+  const bridges = [], nearMisses = [];
+  let shallow = false;
+  for (let i = 0; i < pts.length - 1 && !shallow; i++) {
+    const a = pts[i], b = pts[i + 1], len = dist(a, b);
+    const tx = (b.x - a.x) / len, ty = (b.y - a.y) / len;
+    for (let d = 0; d < len; d += 6) {
+      const p = { x: a.x + tx * d, y: a.y + ty * d }, w = a.w + (b.w - a.w) * (d / len);
+      const q = nearestRoadPoint(p);
+      if (q.d > ROAD_WIDTH / 2 + w / 2 + 6) {
+        if (q.d < ROAD_WIDTH / 2 + w / 2 + 36) nearMisses.push(q);   // brushing past the road without crossing it
+        continue;
+      }
+      const cross = Math.abs(tx * q.ny - ty * q.nx);              // sin of the angle between river and road
+      if (cross < 0.5) { shallow = true; break; }
+      const near = bridges.find((bg) => dist(bg, q) < 50);
+      if (near) { near.n++; near.span = Math.max(near.span, w + 24); }
+      else bridges.push({ x: q.x, y: q.y, angle: Math.atan2(q.ny, q.nx), span: w + 24, n: 1 });
+    }
+  }
+  if (shallow) return null;
+  // A river may hug the road only right where it crosses (the bridge approaches); anywhere else it must keep its distance
+  if (nearMisses.some((q) => !bridges.some((bg) => dist(bg, q) < 80))) return null;
+  map.rivers.push(river);
+  map.bridges.push(...bridges);
+  return river;
 }
 
 // Closest point on any road to p, plus the direction (nx, ny) of the road there

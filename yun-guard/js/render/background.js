@@ -43,7 +43,9 @@ export function buildBackground() {
 
   // Ponds and rivers run under the road
   for (const p of map.ponds) drawPond(c, p);
-  for (const r of map.rivers) drawRiver(c, r, rand);
+  const rivers = [...map.rivers].sort((a, b) => (a.parent ? 0 : 1) - (b.parent ? 0 : 1));   // tributaries first, so the river they join is painted over their end
+  for (const r of rivers) drawRiver(c, r, rand, 0);              // banks and mud for every river first ...
+  for (const r of rivers) drawRiver(c, r, rand, 1);              // ... then the water, so a tributary flows into its river
 
   drawRoad(c, rand, map.paths);
 
@@ -225,7 +227,7 @@ function drawPond(c, p) {
   }
 }
 
-function drawRiver(c, r, rand) {
+function drawRiver(c, r, rand, pass) {
   const pts = r.points;
   // Smooth sideways normals at every point (average of the two neighbouring segments)
   const normals = pts.map((p, i) => {
@@ -242,8 +244,11 @@ function drawRiver(c, r, rand) {
     c.closePath();
     c.fill();
   };
-  band(1, "rgba(60,90,35,0.55)", 7);                                  // damp bank
-  band(1, "#5c4a33", 3);                                              // mud edge
+  if (pass === 0) {
+    band(1, "rgba(60,90,35,0.55)", 7);                                // damp bank
+    band(1, "#5c4a33", 3);                                            // mud edge
+    return;
+  }
   band(1, "#2f6a93");                                                 // deep water
   band(0.6, "#4a93c4", 0, 1.5);                                       // current, drifting toward one bank
   band(0.25, "rgba(140,200,235,0.55)", 0, 1.5);                       // sunlit centre
