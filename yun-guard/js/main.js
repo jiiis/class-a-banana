@@ -103,6 +103,9 @@ function setPaused(on) {
   pauseBtn.innerHTML = icon(on ? "play" : "pause");
   pauseBtn.title = on ? "Resume (P)" : "Pause (P)";
   document.getElementById("paused").style.display = on ? "flex" : "none";
+  const next = document.getElementById("next");
+  if (on) { next.dataset.wasDisabled = next.disabled ? "1" : ""; next.disabled = true; }     // no calling waves while paused
+  else next.disabled = next.dataset.wasDisabled === "1";
   sfx("click");
 }
 pauseBtn.addEventListener("click", () => setPaused(!state.paused));

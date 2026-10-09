@@ -27,7 +27,7 @@ function refreshMenu() {
 export function setWaveButton(mode, seconds) {
   const b = $("next"), face = b.querySelector(".face"), badge = $("nextBadge");
   b.classList.toggle("ready", mode === "ready" || mode === "start");
-  b.disabled = mode === "busy" || mode === "over";
+  b.disabled = mode === "busy" || mode === "over" || state.paused;
   b.title = mode === "start" ? "Start the first wave" : mode === "ready" ? "Call the next wave now for bonus gold" : mode === "busy" ? "Wave in progress" : "Game over";
   face.innerHTML = icon(mode === "start" ? "play" : mode === "ready" ? "forward" : mode === "busy" ? "swords" : "hourglass");
   badge.classList.toggle("on", mode === "ready");
