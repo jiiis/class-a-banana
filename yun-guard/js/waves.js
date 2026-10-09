@@ -27,7 +27,7 @@ export function startWave() {
     t += 1.5;                                             // short pause between groups
   }
   state.spawnTimer = 0;
-  setWaveButton(`Wave ${state.wave} in progress`, true);
+  setWaveButton("busy");
   sfx("wave");
 }
 
@@ -62,5 +62,5 @@ export function waveFinished() {
     return;
   }
   state.countdown = WAVE_BREAK;
-  setWaveButton(`Call next wave (${WAVE_BREAK}s) +gold`, false);
+  setWaveButton("ready", WAVE_BREAK);
 }

@@ -132,7 +132,7 @@ export function update(dt) {
   // --- Countdown between waves ---
   if (state.countdown !== null) {
     state.countdown -= dt;
-    setWaveButton(`Call next wave (${Math.ceil(Math.max(state.countdown, 0))}s) +gold`);
+    setWaveButton("ready", state.countdown);
     if (state.countdown <= 0) startWave();
   }
 

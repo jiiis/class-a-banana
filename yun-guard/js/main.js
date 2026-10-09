@@ -30,7 +30,7 @@ const preset = new URLSearchParams(location.search).get("hero");
 function chooseHero(kind) {
   initHero(kind);
   heroPick.style.display = "none";
-  document.getElementById("next").disabled = false;
+  document.getElementById("next").disabled = false;   // hero chosen: the wave button comes alive
   sfx("select");
 }
 document.getElementById("next").disabled = true;

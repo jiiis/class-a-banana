@@ -22,15 +22,21 @@ function refreshMenu() {
   for (const b of $("menu").querySelectorAll("button[data-cost]")) b.disabled = state.gold < Number(b.dataset.cost);
 }
 
-export function setWaveButton(text, disabled) {
-  const b = $("next");
-  b.textContent = text;
-  if (disabled !== undefined) b.disabled = disabled;
+// The big round button: ▶ before the first wave, ⏩ with a countdown badge between waves (press early for
+// bonus gold), crossed swords while a wave is on, an hourglass when the game is over.
+export function setWaveButton(mode, seconds) {
+  const b = $("next"), face = b.querySelector(".face"), badge = $("nextBadge");
+  b.classList.toggle("ready", mode === "ready" || mode === "start");
+  b.disabled = mode === "busy" || mode === "over";
+  b.title = mode === "start" ? "Start the first wave" : mode === "ready" ? "Call the next wave now for bonus gold" : mode === "busy" ? "Wave in progress" : "Game over";
+  face.innerHTML = icon(mode === "start" ? "play" : mode === "ready" ? "forward" : mode === "busy" ? "swords" : "hourglass");
+  badge.classList.toggle("on", mode === "ready");
+  if (mode === "ready") badge.textContent = Math.ceil(Math.max(seconds, 0));
 }
 
 export function endGame(won) {
   state.over = true;
-  $("next").disabled = true;
+  setWaveButton("over");
   $("overlayTitle").textContent = won ? "Victory!" : "Game Over";
   $("overlayText").textContent = (won
     ? `You defended the kingdom through all ${TOTAL_WAVES} waves!`
@@ -142,7 +148,7 @@ function handleMenuClick(ev) {
 // The board always fills the screen: shown at its natural size, or scaled up (never down) when the window is
 // larger than it. Whatever sticks out past the screen is reached by dragging (see touch.js).
 export const view = { k: 1, panX: 0, panY: 0, mobile: false };
-const hudH = () => $("hud").offsetHeight;
+const hudH = () => 0;                                           // the HUD floats over the board, so the whole window is for the map
 export function fitToWindow() {
   view.mobile = window.matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 1;
   document.documentElement.style.setProperty("--hud", `${hudH()}px`);
@@ -160,6 +166,7 @@ function applyView() {
 export function initUi() {
   $("totalWaves").textContent = TOTAL_WAVES;
   applyIcons();
+  setWaveButton("start");
   $("menu").addEventListener("click", handleMenuClick);
   $("menu").addEventListener("mouseover", (ev) => {                 // hovering a tile shows what that tower does
     const tile = ev.target.closest(".tile"), hint = $("menu").querySelector(".hint");

@@ -29,6 +29,10 @@ const P = {
   people:    '<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.5 2.5-6 6-6s6 2.5 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14c3 0 5 2 5 5"/>',
   range:     '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>',
   plus:      '<path d="M12 5v14M5 12h14"/>',
+  play:      '<path d="M7 4l13 8-13 8z"/>',
+  forward:   '<path d="M4 5l8 7-8 7z"/><path d="M13 5l8 7-8 7z"/>',
+  swords:    '<path d="M3 3l8 8"/><path d="M11 11l-2 2"/><path d="M21 3l-8 8"/><path d="M13 11l2 2"/><path d="M6 14l4 4-3 3-4-4z"/><path d="M18 14l-4 4 3 3 4-4z"/>',
+  hourglass: '<path d="M6 2h12M6 22h12"/><path d="M7 2c0 5 5 6 5 10s-5 5-5 10M17 2c0 5-5 6-5 10s5 5 5 10"/>',
   x:         '<path d="M6 6l12 12M18 6L6 18"/>',
 };
 export function icon(name, cls = "") {

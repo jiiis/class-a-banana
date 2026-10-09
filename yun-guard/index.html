@@ -24,13 +24,18 @@
   </div>
 
     <header id="hud">
-      <div class="stat"><span class="icon" data-icon="coins"></span><b id="gold">0</b></div>
-      <div class="stat"><span class="icon" data-icon="heart"></span><b id="lives">0</b></div>
-      <div class="stat"><span class="label">WAVE</span><b id="wave">0</b><span class="dim">/<span id="totalWaves">0</span></span></div>
-      <div class="stat"><span class="label">MAP</span><span class="dim">#<span id="seed">0</span></span></div>
-      <div class="spacer"></div>
-      <button id="mute" class="icon-btn" title="Sound on/off" data-icon="volume"></button>
-      <button id="next">Start first wave</button>
+      <div class="hud-left">
+        <div class="stat gold"><span class="icon" data-icon="coins"></span><b id="gold">0</b></div>
+        <div class="stat lives"><span class="icon" data-icon="heart"></span><b id="lives">0</b></div>
+        <div class="stat wave"><span class="icon" data-icon="swords"></span><b id="wave">0</b><span class="dim">/<span id="totalWaves">0</span></span></div>
+      </div>
+      <div class="hud-topright">
+        <div class="stat seed"><span class="icon" data-icon="map"></span><span class="dim">#<span id="seed">0</span></span></div>
+      </div>
+      <div class="hud-right">
+        <button id="mute" class="round" title="Sound on/off" data-icon="volume"></button>
+        <button id="next" class="round big" title="Next wave"><span class="face" data-icon="play"></span><span class="badge" id="nextBadge"></span></button>
+      </div>
     </header>
 
     <div id="overlay">
