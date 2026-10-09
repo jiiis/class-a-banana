@@ -96,6 +96,17 @@ window.addEventListener("keydown", (ev) => {
 
 document.getElementById("next").addEventListener("click", startWave);
 
+// Full screen: the round button, or F (hidden where the browser doesn't allow it, e.g. iPhone)
+const fsBtn = document.getElementById("fullscreen");
+const fsOn = () => !!document.fullscreenElement;
+async function toggleFullscreen() {
+  try { if (fsOn()) await document.exitFullscreen(); else await document.documentElement.requestFullscreen(); } catch (e) { /* not allowed here */ }
+}
+if (!document.documentElement.requestFullscreen) fsBtn.style.display = "none";
+fsBtn.addEventListener("click", toggleFullscreen);
+document.addEventListener("fullscreenchange", () => { fsBtn.innerHTML = icon(fsOn() ? "shrink" : "expand"); fsBtn.title = fsOn() ? "Exit full screen (F)" : "Full screen (F)"; });
+window.addEventListener("keydown", (ev) => { if (ev.code === "KeyF" && !ev.metaKey && !ev.ctrlKey) toggleFullscreen(); });
+
 // Pause: the round button, or P / Space
 const pauseBtn = document.getElementById("pause");
 function setPaused(on) {

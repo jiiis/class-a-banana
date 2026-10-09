@@ -148,15 +148,14 @@ function handleMenuClick(ev) {
 // The board always fills the screen: shown at its natural size, or scaled up (never down) when the window is
 // larger than it. Whatever sticks out past the screen is reached by dragging (see touch.js).
 export const view = { k: 1, panX: 0, panY: 0, mobile: false };
-const MAX_ZOOM = 1.6;
+const MAX_ZOOM = 2;
 const hudH = () => 0;                                           // the HUD floats over the board, so the whole window is for the map
 export function fitToWindow() {
   view.mobile = window.matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 1;
   document.documentElement.style.setProperty("--hud", `${hudH()}px`);
-  // Cover the screen when it is a little bigger than the board, but never blow things up more than 1.6×:
-  // on very wide or tall screens the board stays a sensible size with a quiet border instead.
-  const cover = Math.max(window.innerWidth / W, (window.innerHeight - hudH()) / H);
-  view.k = Math.min(MAX_ZOOM, Math.max(1, cover));
+  // The board is scaled to the window's height (never below natural size, never more than 2×); the width
+  // follows proportionally, so a wide screen gets quiet borders at the sides and a narrow one pans sideways.
+  view.k = Math.min(MAX_ZOOM, Math.max(1, (window.innerHeight - hudH()) / H));
   applyView();
 }
 export const canPan = () => W * view.k > window.innerWidth + 1 || H * view.k > window.innerHeight - hudH() + 1;
