@@ -4,7 +4,6 @@
 
 export const W = 960;
 export const H = 600;
-export const TOP_PAD = 56;              // extra canvas above the map so towers on the top row aren't cut off
 
 export const START_GOLD = 400;
 export const START_LIVES = 20;

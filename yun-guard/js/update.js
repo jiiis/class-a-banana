@@ -208,7 +208,7 @@ export function update(dt) {
   for (const e of state.enemies) {
     if (e.reached) {
       const end = e.path[e.path.length - 1];
-      const k = map.castles.reduce((best, c) => (Math.abs(c.y - end.y) < Math.abs(best.y - end.y) ? c : best), map.castles[0]);
+      const k = map.castles.reduce((best, c) => (Math.hypot(c.x - end.x, c.y - end.y) < Math.hypot(best.x - end.x, best.y - end.y) ? c : best), map.castles[0]);
       if (e.def.steals) {                                    // a thief slips into the castle and runs off with gold
         const take = Math.min(state.gold, e.def.steals);
         state.gold -= take;

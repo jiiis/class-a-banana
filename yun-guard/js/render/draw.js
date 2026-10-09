@@ -1,7 +1,7 @@
 import { ctx, circle, line, poly } from "./gfx.js";
 import { state } from "../state.js";
 import { map } from "../map.js";
-import { SPOT_RADIUS, W, TOP_PAD } from "../config.js";
+import { SPOT_RADIUS } from "../config.js";
 import { towerRange, abilityDef } from "../towers.js";
 import { buildBackground, drawSign, CASTLE_STYLES } from "./background.js";
 import { drawTower, flag } from "./towers.js";
@@ -118,8 +118,7 @@ function drawSpot(s, i, occupied, hovered) {
 
 export function draw() {
   if (!background) background = buildBackground();
-  ctx.setTransform(1, 0, 0, 1, 0, TOP_PAD);                        // everything is drawn in map coordinates
-  ctx.drawImage(background, 0, -TOP_PAD);                          // the picture already includes the grass strip above the map
+  ctx.drawImage(background, 0, 0);
   drawWater();
   // The banner on the castle keep ripples in the wind (the signpost and its flag are drawn with the actors below)
   map.castles.forEach((k, i) => flag(k.x, k.y - (k.style === 1 ? 86 : 92) * k.scale, 24 * k.scale, CASTLE_STYLES[k.style].banner, 1 + i));
@@ -244,7 +243,7 @@ export function draw() {
   // Towers, soldiers, monsters and animals, sorted so things lower on screen are drawn in front.
   // A tower's "feet" are the bottom of its stone pad, so monsters walking above it go behind it.
   const actors = [];
-  for (const e of map.entries) actors.push({ y: e.y + 12, draw: () => { drawSign(ctx, e.x, e.y); flag(e.x, e.y - 40, 20, "#c62828", 2 + e.y); } });
+  for (const e of map.entries) actors.push({ y: e.y + 12, draw: () => { drawSign(ctx, e.x, e.y, e.face); flag(e.x, e.y - 40, 20, "#c62828", 2 + e.y); } });
   for (const t of state.towers) actors.push({ y: t.y + 12, draw: () => {
     drawTower(t);
     if (t.level > 1) {

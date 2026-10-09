@@ -1,4 +1,4 @@
-import { W, H, ROAD_WIDTH, TOP_PAD } from "../config.js";
+import { W, H, ROAD_WIDTH } from "../config.js";
 import { rng, pointsAlongPath, closestPointOnPath } from "../util.js";
 import { map } from "../map.js";
 import { rect, circle, ellipse, poly, line, shadow } from "./gfx.js";
@@ -6,13 +6,11 @@ import { rect, circle, ellipse, poly, line, shadow } from "./gfx.js";
 // The scenery never changes, so we draw it once onto a hidden canvas
 // and then just copy that picture every frame.
 export function buildBackground() {
-  // The picture is a little taller than the map: the grass continues above it so tall towers on the top row have room
   const off = document.createElement("canvas");
-  off.width = W; off.height = H + TOP_PAD;
+  off.width = W; off.height = H;
   const c = off.getContext("2d");
-  c.translate(0, TOP_PAD);
   const rand = rng(1234);
-  const Y0 = -TOP_PAD, HH = H + TOP_PAD;            // the painted area, in map coordinates
+  const Y0 = 0, HH = H;
 
   // Grass base
   const g = c.createLinearGradient(0, Y0, 0, H);
@@ -380,12 +378,15 @@ const DRAW_DECO = {
 };
 
 // Wooden signpost at the monsters' entrance (drawn live, depth-sorted with everything else)
-export function drawSign(c, x, y) {
+export function drawSign(c, x, y, face = { dc: 1, dr: 0 }) {
   shadow(c, x, y + 12, 8, 3);
   rect(c, x - 2, y - 20, 4, 32, "#5d4037");
-  poly(c, [[x - 18, y - 24], [x + 12, y - 24], [x + 20, y - 17], [x + 12, y - 10], [x - 18, y - 10]], "#8d6e63", "#4e342e");
-  line(c, x - 12, y - 17, x + 8, y - 17, "#3e2723", 2);
-  poly(c, [[x + 4, y - 21], [x + 10, y - 17], [x + 4, y - 13]], "#3e2723");
+  const flip = face.dc < 0 ? -1 : 1;                                         // the board points the way the road goes
+  const bx = (px) => x + (px + 3) * flip - 3;
+  poly(c, [[bx(-18), y - 24], [bx(12), y - 24], [bx(20), y - 17], [bx(12), y - 10], [bx(-18), y - 10]], "#8d6e63", "#4e342e");
+  line(c, bx(-12), y - 17, bx(8), y - 17, "#3e2723", 2);
+  if (face.dr === 0) poly(c, [[bx(4), y - 21], [bx(10), y - 17], [bx(4), y - 13]], "#3e2723");
+  else poly(c, [[x - 3, y - 17 + face.dr * 4], [x - 7, y - 17 - face.dr * 2], [x + 1, y - 17 - face.dr * 2]], "#3e2723");   // arrow up or down
   // (the red flag on top is animated, drawn each frame in draw.js)
 }
 

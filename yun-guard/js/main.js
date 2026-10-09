@@ -1,6 +1,6 @@
 import { canvas } from "./render/gfx.js";
 import { state } from "./state.js";
-import { W, H, SPOT_RADIUS, TOP_PAD } from "./config.js";
+import { W, H, SPOT_RADIUS } from "./config.js";
 import { dist } from "./util.js";
 import { map, generateMap } from "./map.js";
 import { update } from "./update.js";
@@ -40,7 +40,7 @@ if (["april", "avril", "ember", "willow", "meilin"].includes(preset)) chooseHero
 // Click a build spot to open its menu; click empty ground to close it.
 canvas.addEventListener("click", (ev) => {
   const r = canvas.getBoundingClientRect();
-  const p = { x: (ev.clientX - r.left) * (W / r.width), y: (ev.clientY - r.top) * ((H + TOP_PAD) / r.height) - TOP_PAD };
+  const p = { x: (ev.clientX - r.left) * (W / r.width), y: (ev.clientY - r.top) * (H / r.height) };
   const clicked = heroAt(p), active = selectedHero();
   if (state.rallyFor) {                                   // placing a barracks rally flag
     if (state.towers.includes(state.rallyFor)) setRally(state.rallyFor, p);
@@ -64,7 +64,7 @@ canvas.addEventListener("click", (ev) => {
 // Highlight the build spot under the mouse
 canvas.addEventListener("mousemove", (ev) => {
   const r = canvas.getBoundingClientRect();
-  const p = { x: (ev.clientX - r.left) * (W / r.width), y: (ev.clientY - r.top) * ((H + TOP_PAD) / r.height) - TOP_PAD };
+  const p = { x: (ev.clientX - r.left) * (W / r.width), y: (ev.clientY - r.top) * (H / r.height) };
   const i = map.spots.findIndex((s) => dist(s, p) <= SPOT_RADIUS + 5);
   state.hover = i >= 0 ? i : null;
   // With a hero selected, an animal under the mouse is marked as the would-be target
