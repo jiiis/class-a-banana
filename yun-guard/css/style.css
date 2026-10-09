@@ -41,6 +41,8 @@ html, body {
 .hud-left { top: 14px; left: 16px; gap: 18px; }          /* stats, top-left */
 .hud-topright { top: 16px; right: 16px; }                /* map number, top-right */
 .hud-right { bottom: 14px; right: 16px; gap: 12px; }     /* buttons, bottom-right */
+.hud-logo { bottom: 14px; left: 16px; gap: 10px; opacity: 0.9; }   /* logo, bottom-left */
+.hud-logo img { width: 64px; height: 64px; border-radius: 14px; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5); }
 .stat {
   display: flex;
   align-items: center;

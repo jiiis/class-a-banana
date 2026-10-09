@@ -13,13 +13,16 @@ export function drawCritter(c) {
     ctx.setLineDash([]);
     for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) line(ctx, c.x + dx * (pulse + 2), c.y + 1 + dy * (pulse + 2), c.x + dx * (pulse + 6), c.y + 1 + dy * (pulse + 6), "#ffd54f", 1.5);
   }
-  shadow(ctx, c.x, c.y + 1, c.type === "deer" ? 11 : c.type === "chicken" ? 5 : 8, 3);
+  const k = CRITTER_SCALE[c.type] || 1;                                      // small animals drawn smaller
+  shadow(ctx, c.x, c.y + 1, (c.type === "deer" ? 11 : c.type === "chicken" ? 5 : 8) * k, 3 * k);
   ctx.save();
   ctx.translate(c.x, c.y);
-  ctx.scale(c.dir, 1);
+  ctx.scale(c.dir * k, k);
   DRAW[c.type](c.phase, moving);
   ctx.restore();
 }
+
+const CRITTER_SCALE = { bunny: 0.7, chicken: 0.65, fox: 0.9 };
 
 const DRAW = {
   bunny(phase, moving) {
