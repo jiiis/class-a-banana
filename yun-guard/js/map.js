@@ -388,7 +388,7 @@ function pickSpots(cells, rand) {
   for (let c = 0; c < COLS; c++) {
     for (let r = 0; r < ROWS; r++) {
       if (road.has(key(c, r))) continue;
-      if (c < ROAD_MIN_COL || c > ROAD_MAX_COL) continue;                    // no building in the side margins
+      if (!inInterior(c, r)) continue;                                     // no building in any margin
       const nextToRoad = NEIGHBOURS.some(([dc, dr]) => road.has(key(c + dc, r + dr)));
       if (!nextToRoad) continue;
       const p = center({ c, r });
