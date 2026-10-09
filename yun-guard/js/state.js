@@ -32,4 +32,5 @@ export const state = {
   weather: null,     // rain / snow (see weather.js)
   fish: [],          // fish mid-leap out of a river
   over: false,
+  paused: false,     // frozen by the pause button (P or Space)
 };

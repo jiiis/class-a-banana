@@ -30,6 +30,7 @@ const P = {
   range:     '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>',
   plus:      '<path d="M12 5v14M5 12h14"/>',
   play:      '<path d="M7 4l13 8-13 8z"/>',
+  pause:     '<path d="M7 4v16M17 4v16"/>',
   forward:   '<path d="M4 5l8 7-8 7z"/><path d="M13 5l8 7-8 7z"/>',
   swords:    '<path d="M3 3l8 8"/><path d="M11 11l-2 2"/><path d="M21 3l-8 8"/><path d="M13 11l2 2"/><path d="M6 14l4 4-3 3-4-4z"/><path d="M18 14l-4 4 3 3 4-4z"/>',
   hourglass: '<path d="M6 2h12M6 22h12"/><path d="M7 2c0 5 5 6 5 10s-5 5-5 10M17 2c0 5-5 6-5 10s5 5 5 10"/>',

@@ -223,6 +223,19 @@ canvas { display: block; }
 #heroPick .card[data-hero="willow"] { border-top-color: #8bc34a; }
 #heroPick .card[data-hero="meilin"] { border-top-color: #80deea; }
 
+/* ---------- Paused ---------- */
+#paused {
+  position: fixed; inset: 0; z-index: 3;
+  display: none; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  background: rgba(10, 12, 18, 0.45);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  color: var(--text);
+  pointer-events: none;
+}
+#paused .ico { width: 72px; height: 72px; filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.8)); }
+#paused small { font-size: 13px; letter-spacing: 4px; text-transform: uppercase; color: var(--muted); }
+
 /* ---------- Game over / victory ---------- */
 #overlay {
   position: fixed;

@@ -116,8 +116,8 @@ export function update(dt) {
   updateCritters(dt);                 // animals keep wandering even on the game over screen
   updateWeather(dt);
   updateFish(dt);
-  if (state.over) return;
-  state.time += dt;
+  state.time += dt;                   // flags, water, idle animations keep going when paused or after the game ends
+  if (state.over || state.paused) return;   // paused: the fight stands still, the world stays alive
 
   // --- Spawning ---
   if (state.spawnQueue.length) {

@@ -21,7 +21,7 @@ export function drawHero(h) {
   if (h.selected) {
     circle(ctx, h.x, h.y + 10, 16, RING[h.kind] || RING.april, accent, 2);
     if (h.moveTo) {
-      const pulse = 4 + Math.sin(performance.now() / 150) * 2;
+      const pulse = 4 + Math.sin((state.time * 1000) / 150) * 2;
       circle(ctx, h.moveTo.x, h.moveTo.y, pulse, null, accent, 1.5);
       line(ctx, h.moveTo.x - 7, h.moveTo.y, h.moveTo.x + 7, h.moveTo.y, accent, 1);
       line(ctx, h.moveTo.x, h.moveTo.y - 7, h.moveTo.x, h.moveTo.y + 7, accent, 1);

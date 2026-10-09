@@ -1,4 +1,5 @@
 import { ctx, rect, circle, ellipse, poly, line, shadow } from "./gfx.js";
+import { state } from "../state.js";
 
 // Monsters are drawn with shapes and animated by their walking "phase".
 // Each drawing faces right; we flip the canvas when a monster walks left.
@@ -78,7 +79,7 @@ export function drawCorpse(c) {
 
 // Willow's vines: thorny tendrils curling up from the ground around a rooted monster
 function drawVines(e) {
-  const s = e.def.size, t = performance.now() / 300;
+  const s = e.def.size, t = (state.time * 1000) / 300;
   const fade = Math.min(1, e.rooted / 0.4);
   ctx.globalAlpha = fade;
   for (let i = 0; i < 5; i++) {
@@ -96,7 +97,7 @@ function drawVines(e) {
 
 // Venom: sickly green drips and bubbles around a poisoned monster
 function drawPoison(e) {
-  const s = e.def.size, t = performance.now() / 350;
+  const s = e.def.size, t = (state.time * 1000) / 350;
   ctx.globalAlpha = 0.8;
   for (let i = 0; i < 4; i++) {
     const k = (t * 0.6 + i / 4) % 1, px = e.x + Math.sin(i * 2.1 + t * 0.3) * s * 0.35, py = e.y - s * 0.1 + k * s * 0.5;
@@ -108,7 +109,7 @@ function drawPoison(e) {
 
 // Curse: a violet skull hovering over the monster, with dark motes orbiting it
 function drawCurse(e) {
-  const s = e.def.size, t = performance.now() / 400, sy = e.y - s * 0.95 - (e.def.flying ? 18 : 0) - 8 + Math.sin(t * 2) * 1.5;
+  const s = e.def.size, t = (state.time * 1000) / 400, sy = e.y - s * 0.95 - (e.def.flying ? 18 : 0) - 8 + Math.sin(t * 2) * 1.5;
   const fade = Math.min(1, e.cursed / 0.5);
   ctx.globalAlpha = 0.9 * fade;
   circle(ctx, e.x, sy, 4, "#ce93d8", "#7b1fa2", 0.8);
@@ -119,7 +120,7 @@ function drawCurse(e) {
 
 // Static: little blue sparks jumping off a monster caught in the field
 function drawStatic(e) {
-  const s = e.def.size, t = Math.floor(performance.now() / 60);
+  const s = e.def.size, t = Math.floor((state.time * 1000) / 60);
   for (let i = 0; i < 3; i++) {
     const a = (t * 0.9 + i * 2.1) % 6.28, px = e.x + Math.cos(a) * s * 0.4, py = e.y - s * 0.3 + Math.sin(a) * s * 0.3;
     line(ctx, px, py, px + Math.sin(t + i) * 4, py - 3 - Math.cos(t * 1.3 + i) * 3, "#e1f5fe", 1.2);
@@ -128,7 +129,7 @@ function drawStatic(e) {
 
 // Ice crystals clinging to a chilled monster, with a few drifting snowflakes
 function drawIce(e) {
-  const s = e.def.size, t = performance.now() / 400;
+  const s = e.def.size, t = (state.time * 1000) / 400;
   const fade = Math.min(1, e.frost.time / 0.5);
   ctx.globalAlpha = 0.85 * fade;
   for (let i = 0; i < 4; i++) {
@@ -146,7 +147,7 @@ function drawIce(e) {
 
 // Flames licking over a burning monster, plus a wisp of smoke
 function drawFlames(e) {
-  const s = e.def.size, t = performance.now() / 90;
+  const s = e.def.size, t = (state.time * 1000) / 90;
   for (let i = 0; i < 4; i++) {
     const fx = e.x + Math.sin(t * 0.9 + i * 2.1) * s * 0.3;
     const base = e.y + s * 0.2 - i * s * 0.12;

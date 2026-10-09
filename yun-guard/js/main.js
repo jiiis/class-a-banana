@@ -96,6 +96,18 @@ window.addEventListener("keydown", (ev) => {
 
 document.getElementById("next").addEventListener("click", startWave);
 
+// Pause: the round button, or P / Space
+const pauseBtn = document.getElementById("pause");
+function setPaused(on) {
+  state.paused = on;
+  pauseBtn.innerHTML = icon(on ? "play" : "pause");
+  pauseBtn.title = on ? "Resume (P)" : "Pause (P)";
+  document.getElementById("paused").style.display = on ? "flex" : "none";
+  sfx("click");
+}
+pauseBtn.addEventListener("click", () => setPaused(!state.paused));
+window.addEventListener("keydown", (ev) => { if ((ev.code === "KeyP" || ev.code === "Space") && heroPick.style.display === "none" && !state.over) { ev.preventDefault(); setPaused(!state.paused); } });
+
 // Main loop
 let last = performance.now();
 function frame(now) {
