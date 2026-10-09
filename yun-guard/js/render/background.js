@@ -48,6 +48,8 @@ export function buildBackground() {
   drawRoad(c, rand, map.paths);
 
   for (const b of map.bridges) drawBridge(c, b);
+  for (const g of map.exits) drawGate(c, g);
+  for (const e of map.entries) drawLair(c, e, rand);
 
   // Scenery, drawn back to front so nearer things overlap farther ones
   for (const d of [...map.deco].sort((a, b) => a.y - b.y)) {
@@ -378,6 +380,67 @@ const DRAW_DECO = {
 };
 
 // Wooden signpost at the monsters' entrance (drawn live, depth-sorted with everything else)
+// The monster lair at an entrance: scorched earth at the mouth of the road, skull stakes either side,
+// scattered bones and a dead tree. The glowing eyes and green mist are animated in draw.js.
+export function lairStakes(e) {
+  const px = -e.inn.y, py = e.inn.x;
+  return [{ x: e.rx + px * GATE_SPAN, y: e.ry + py * GATE_SPAN }, { x: e.rx - px * GATE_SPAN, y: e.ry - py * GATE_SPAN }];
+}
+function drawLair(c, e, rand) {
+  const ax = e.inn.x, ay = e.inn.y, px = -ay, py = ax;
+  // Scorched, trampled earth where the monsters pour in
+  const g = c.createRadialGradient(e.rx - ax * 10, e.ry - ay * 10, 4, e.rx - ax * 10, e.ry - ay * 10, 60);
+  g.addColorStop(0, "rgba(30,20,25,0.55)"); g.addColorStop(1, "rgba(30,20,25,0)");
+  c.fillStyle = g; c.beginPath(); c.ellipse(e.rx - ax * 10, e.ry - ay * 10, 60, 60, 0, 0, Math.PI * 2); c.fill();
+  for (let i = 0; i < 6; i++) {                                                 // bones in the dirt
+    const t = (rand() - 0.5) * 50, s = (rand() - 0.5) * 36, bx = e.rx + ax * (t * 0.3 + 12) + px * s, by = e.ry + ay * (t * 0.3 + 12) + py * s, a = rand() * Math.PI, l = 5 + rand() * 6;
+    line(c, bx - Math.cos(a) * l, by - Math.sin(a) * l, bx + Math.cos(a) * l, by + Math.sin(a) * l, "#e0e0e0", 2);
+    circle(c, bx - Math.cos(a) * l, by - Math.sin(a) * l, 1.6, "#e0e0e0"); circle(c, bx + Math.cos(a) * l, by + Math.sin(a) * l, 1.6, "#e0e0e0");
+  }
+  for (const s of lairStakes(e)) {                                              // skull stakes
+    castShadow(c, s.x, s.y + 2, 5, 22);
+    line(c, s.x, s.y + 4, s.x, s.y - 30, "#4e342e", 4); line(c, s.x - 1, s.y + 4, s.x - 1, s.y - 30, "#6d4c41", 1.5);
+    for (let k = 0; k < 3; k++) line(c, s.x - 5, s.y - 8 - k * 7, s.x + 5, s.y - 10 - k * 7, "#8d6e63", 1.2);   // rope wraps
+    circle(c, s.x, s.y - 35, 6, "#eeeeee", "#9e9e9e", 1);
+    circle(c, s.x - 2.2, s.y - 36, 1.6, "#1b1b1b"); circle(c, s.x + 2.2, s.y - 36, 1.6, "#1b1b1b");
+    line(c, s.x - 2.5, s.y - 31, s.x + 2.5, s.y - 31, "#9e9e9e", 1); for (let k = -1; k <= 1; k++) line(c, s.x + k * 1.6, s.y - 32, s.x + k * 1.6, s.y - 30, "#9e9e9e", 1);
+  }
+  // A dead tree leaning over the road, on the signpost's far side
+  const side = (e.x - e.rx) * px + (e.y - e.ry) * py > 0 ? -1 : 1;
+  const tx = e.rx + px * side * (GATE_SPAN + 16) + ax * 6, ty = e.ry + py * side * (GATE_SPAN + 16) + ay * 6;
+  castShadow(c, tx, ty, 8, 26);
+  line(c, tx, ty, tx + 3, ty - 34, "#3e2723", 6);
+  line(c, tx + 1, ty - 18, tx - 14, ty - 32, "#3e2723", 3.5); line(c, tx + 2, ty - 26, tx + 16, ty - 40, "#3e2723", 3);
+  line(c, tx - 14, ty - 32, tx - 20, ty - 42, "#3e2723", 2); line(c, tx + 16, ty - 40, tx + 22, ty - 44, "#3e2723", 1.8); line(c, tx + 3, ty - 34, tx + 1, ty - 48, "#3e2723", 2.5);
+  circle(c, tx - 20, ty - 42, 2.2, "#1b1b1b"); circle(c, tx + 23, ty - 45, 2.2, "#1b1b1b");                  // crows
+}
+
+// The exit gate: two stone pillars either side of the road where it leaves the map, with chevrons on the
+// road pointing out through it. The torches and banner on top are animated, drawn each frame in draw.js.
+export const GATE_SPAN = ROAD_WIDTH / 2 + 14;
+export function gatePillars(g) {
+  const px = -g.out.y, py = g.out.x;                                           // across the road
+  return [{ x: g.x + px * GATE_SPAN, y: g.y + py * GATE_SPAN }, { x: g.x - px * GATE_SPAN, y: g.y - py * GATE_SPAN }];
+}
+function drawGate(c, g) {
+  // Chevrons worn into the dirt, pointing the way out
+  const ax = g.out.x, ay = g.out.y, px = -ay, py = ax;
+  for (let k = -1; k <= 1; k++) {
+    const cx = g.x - ax * 26 + ax * k * 20, cy = g.y - ay * 26 + ay * k * 20;
+    c.strokeStyle = "rgba(70,45,20,0.45)"; c.lineWidth = 4; c.lineCap = "round"; c.lineJoin = "round";
+    c.beginPath(); c.moveTo(cx - ax * 7 + px * 14, cy - ay * 7 + py * 14); c.lineTo(cx + ax * 7, cy + ay * 7); c.lineTo(cx - ax * 7 - px * 14, cy - ay * 7 - py * 14); c.stroke();
+  }
+  for (const p of gatePillars(g)) {
+    castShadow(c, p.x, p.y + 4, 9, 30);
+    const grad = c.createLinearGradient(p.x - 9, 0, p.x + 9, 0);
+    grad.addColorStop(0, "#b8b4ac"); grad.addColorStop(0.6, "#8f8b84"); grad.addColorStop(1, "#5a5650");
+    rect(c, p.x - 9, p.y - 34, 18, 40, grad, "#3a3733", 1.2);
+    for (let yy = p.y - 28; yy < p.y + 4; yy += 8) line(c, p.x - 9, yy, p.x + 9, yy, "rgba(40,36,32,0.35)", 1);
+    for (let xx = p.x - 9; xx < p.x + 9; xx += 7) rect(c, xx, p.y - 40, 5, 7, "#a8a49c", "#3a3733", 1);   // battlements
+    rect(c, p.x - 1.5, p.y - 46, 3, 8, "#4e342e");                                                       // torch bracket
+  }
+}
+
 export function drawSign(c, x, y, face = { dc: 1, dr: 0 }) {
   shadow(c, x, y + 12, 8, 3);
   rect(c, x - 2, y - 20, 4, 32, "#5d4037");

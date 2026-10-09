@@ -3,7 +3,7 @@ import { state } from "../state.js";
 import { map } from "../map.js";
 import { SPOT_RADIUS } from "../config.js";
 import { towerRange, abilityDef } from "../towers.js";
-import { buildBackground, drawSign, CASTLE_STYLES } from "./background.js";
+import { buildBackground, drawSign, CASTLE_STYLES, gatePillars, lairStakes } from "./background.js";
 import { drawTower, flag } from "./towers.js";
 import { drawEnemy, drawCorpse } from "./creatures.js";
 import { drawSoldier } from "./soldiers.js";
@@ -121,6 +121,32 @@ export function draw() {
   ctx.drawImage(background, 0, 0);
   drawWater();
   // The banner on the castle keep ripples in the wind (the signpost and its flag are drawn with the actors below)
+  // Lairs: the skulls' eyes glow and green mist seeps out of the entrance
+  map.entries.forEach((e, i) => {
+    const T = state.time + i * 1.7;
+    for (const s of lairStakes(e)) { const gl = 0.5 + Math.sin(T * 3 + s.x) * 0.4; circle(ctx, s.x - 2.2, s.y - 36, 1.4, `rgba(118,255,3,${gl})`); circle(ctx, s.x + 2.2, s.y - 36, 1.4, `rgba(118,255,3,${gl})`); }
+    for (let k = 0; k < 5; k++) {
+      const p = (T * 0.25 + k / 5) % 1, spread = Math.sin(T * 0.7 + k * 2.3) * 22;
+      const mx = e.rx + e.inn.x * p * 70 - e.inn.y * spread, my = e.ry + e.inn.y * p * 70 + e.inn.x * spread - p * 6;
+      ctx.globalAlpha = 0.22 * (1 - p) * (0.6 + 0.4 * Math.sin(T * 2 + k));
+      circle(ctx, mx, my, 10 + p * 16, "#8bc34a");
+    }
+    ctx.globalAlpha = 1;
+  });
+  // Exit gates: torches burn on the pillars and a chain with the castle's banner hangs across the road
+  map.exits.forEach((g, i) => {
+    const [a, b] = gatePillars(g), T = state.time * 9 + i;
+    const style = CASTLE_STYLES[(map.castles[i] || map.castles[0]).style];
+    ctx.strokeStyle = "#4e342e"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(a.x, a.y - 44); ctx.quadraticCurveTo((a.x + b.x) / 2, (a.y + b.y) / 2 - 36, b.x, b.y - 44); ctx.stroke();
+    const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2 - 40;
+    poly(ctx, [[mx - 7, my], [mx + 7, my], [mx + 6, my + 12 + Math.sin(state.time * 4) * 1.5], [mx, my + 18 + Math.sin(state.time * 5) * 2], [mx - 6, my + 12 + Math.sin(state.time * 4) * 1.5]], style.banner, "rgba(0,0,0,0.3)", 0.8);
+    for (const p of [a, b]) {
+      const fl = Math.sin(T + p.x) * 1.5, fl2 = Math.sin(T * 1.7 + p.y) * 1.2;
+      poly(ctx, [[p.x - 3, p.y - 46], [p.x + 3, p.y - 46], [p.x + fl, p.y - 56 - fl2]], "#ff9800");
+      poly(ctx, [[p.x - 1.5, p.y - 46], [p.x + 1.5, p.y - 46], [p.x + fl * 0.6, p.y - 52 - fl2]], "#ffeb3b");
+      ctx.globalAlpha = 0.25; circle(ctx, p.x, p.y - 50, 14, "rgba(255,180,60,0.6)"); ctx.globalAlpha = 1;
+    }
+  });
   map.castles.forEach((k, i) => flag(k.x, k.y - (k.style === 1 ? 86 : 92) * k.scale, 24 * k.scale, CASTLE_STYLES[k.style].banner, 1 + i));
 
   // Scorch marks from cannonballs slowly fade away

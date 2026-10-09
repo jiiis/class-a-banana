@@ -16,6 +16,7 @@ export const map = {
   critters: [],    // animal home spots
   entry: null,     // where the signpost goes
   castle: null,    // the main road's castle (castles[0])
+  exits: [],       // gates where the roads leave the map: { x, y, out }
   castles: [],     // one castle per exit: { x, y, scale, style } - style 0 is grey stone, 1 is a sandstone palace
   exit: null,      // last point of the road
 };
@@ -54,15 +55,18 @@ export function generateMap(seed) {
   for (const r of map.routes) {
     if (!r.entry || map.entries.some((e) => e.edge === r.entry.edge && e.pos === r.entry.pos)) continue;
     const c0 = center(r.cells[0]), inn = INWARD[r.entry.edge];
+    const road = { rx: c0.x + inn.dc * 18, ry: c0.y + inn.dr * 18, inn: { x: inn.dc, y: inn.dr } };            // where the road crosses the edge (for the lair decoration)
     map.entries.push(inn.dr === 0
-      ? { x: c0.x + inn.dc * 10, y: c0.y + 62, face: inn, edge: r.entry.edge, pos: r.entry.pos }                // side entry: sign below the road
-      : { x: c0.x + (c0.x < W / 2 ? 62 : -62), y: c0.y + inn.dr * 14 + 10, face: inn, edge: r.entry.edge, pos: r.entry.pos });   // top/bottom entry: sign beside it
+      ? { x: c0.x + inn.dc * 10, y: c0.y + 62, face: inn, edge: r.entry.edge, pos: r.entry.pos, ...road }                // side entry: sign below the road
+      : { x: c0.x + (c0.x < W / 2 ? 62 : -62), y: c0.y + inn.dr * 14 + 10, face: inn, edge: r.entry.edge, pos: r.entry.pos, ...road });   // top/bottom entry: sign beside it
   }
   map.entry = map.entries[0];
 
   // A castle guards every exit, standing in the margin beside the road where it leaves the map
   const exits = [];
   for (const r of map.routes) if (r.exit && !exits.some((e) => e.edge === r.exit.edge && e.pos === r.exit.pos)) exits.push(r.exit);
+  // Gates mark the exits: where the road leaves the map, facing outward
+  map.exits = exits.map((ex) => { const c = center(edgeCell(ex.edge, ex.pos)), inn = INWARD[ex.edge]; return { edge: ex.edge, pos: ex.pos, x: c.x + inn.dc * 18, y: c.y + inn.dr * 18, out: { x: -inn.dc, y: -inn.dr } }; });
   const two = exits.length > 1, scale = two ? 0.8 : 1;
   map.castles = exits.map((ex, i) => {
     const c = center(edgeCell(ex.edge, ex.pos));
