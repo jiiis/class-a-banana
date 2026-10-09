@@ -55,10 +55,10 @@ export function generateMap(seed) {
   for (const r of map.routes) {
     if (!r.entry || map.entries.some((e) => e.edge === r.entry.edge && e.pos === r.entry.pos)) continue;
     const c0 = center(r.cells[0]), inn = INWARD[r.entry.edge];
-    const road = { rx: c0.x + inn.dc * 18, ry: c0.y + inn.dr * 18, inn: { x: inn.dc, y: inn.dr } };            // where the road crosses the edge (for the lair decoration)
+    const road = { rx: c0.x + inn.dc * 44, ry: c0.y + inn.dr * 44, inn: { x: inn.dc, y: inn.dr } };            // where the road crosses the edge (for the lair decoration)
     map.entries.push(inn.dr === 0
-      ? { x: c0.x + inn.dc * 10, y: c0.y + 62, face: inn, edge: r.entry.edge, pos: r.entry.pos, ...road }                // side entry: sign below the road
-      : { x: c0.x + (c0.x < W / 2 ? 62 : -62), y: c0.y + inn.dr * 14 + 10, face: inn, edge: r.entry.edge, pos: r.entry.pos, ...road });   // top/bottom entry: sign beside it
+      ? { x: c0.x + inn.dc * 46, y: c0.y + 62, face: inn, edge: r.entry.edge, pos: r.entry.pos, ...road }                // side entry: sign below the road
+      : { x: c0.x + (c0.x < W / 2 ? 62 : -62), y: c0.y + inn.dr * 50 + 10, face: inn, edge: r.entry.edge, pos: r.entry.pos, ...road });   // top/bottom entry: sign beside it
   }
   map.entry = map.entries[0];
 
@@ -78,7 +78,7 @@ export function generateMap(seed) {
   const gatePillarPoints = (g) => { const px = -g.out.y, py = g.out.x, span = ROAD_WIDTH / 2 + 14; return [{ x: g.x + px * span, y: g.y + py * span }, { x: g.x - px * span, y: g.y - py * span }]; };
   const gateClear = (x, y, sc) => map.exits.every((g) => gatePillarPoints(g).every((pp) => Math.abs(pp.x - x) > 52 * sc + 14 || pp.y < y - 96 * sc - 10 || pp.y > y + 12 * sc + 60));
   // Enough room around it first (a road's width of grass), then as close to its own road as possible, full size preferred
-  const score = (o) => (gateClear(o.x, o.y, o.sc) ? 0 : -1000) + Math.min(roomAround(o.x, o.y, o.sc), 70) + (o.pref ? 10 : 0) - o.d * 0.05 + o.sc * 30;   // bigger is better when the room is similar
+  const score = (o) => (gateClear(o.x, o.y, o.sc) ? 0 : -1000) + Math.min(roomAround(o.x, o.y, o.sc), 70) + (o.pref ? 10 : 0) - o.d * 0.08 + o.sc * 45;   // bigger is better when the room is similar
   // Each castle picks, from spots along its edge on both sides of the road (and a smaller size if it must),
   // the one with the most open grass, leaning away from a sister castle on the same edge when both are fine
   map.castles = exits.map((ex, i) => {
@@ -90,14 +90,14 @@ export function generateMap(seed) {
       if (ex.edge === "right" || ex.edge === "left") {
         const x = ex.edge === "right" ? xHi : xLo;
         const oy = other ? center(edgeCell(other.edge, other.pos)).y : null;
-        for (const d of [66, 126, 186, 246, 306, 366]) {
+        for (const d of [66, 126, 186, 246, 306]) {
           options.push({ x, y: clamp(c.y - d, yLo, yHi), pref: oy === null || c.y < oy, d, sc });
           options.push({ x, y: clamp(c.y + d + 80, yLo, yHi), pref: oy === null || c.y > oy, d, sc });
         }
       } else {
         const y = ex.edge === "top" ? yLo : yHi;
         const ox = other ? center(edgeCell(other.edge, other.pos)).x : null;
-        for (const d of [124, 184, 244, 304, 364, 424, 484]) {
+        for (const d of [124, 184, 244, 304, 364]) {
           options.push({ x: clamp(c.x - d, xLo, xHi), y, pref: ox === null || c.x < ox, d, sc });
           options.push({ x: clamp(c.x + d, xLo, xHi), y, pref: ox === null || c.x > ox, d, sc });
         }
