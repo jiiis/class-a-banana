@@ -97,9 +97,9 @@ function makeRivers(rand) {
   map.rivers = [];
   map.bridges = [];
   const roll = rand();
-  const count = roll < 0.25 ? 0 : roll < 0.65 ? 1 : roll < 0.9 ? 2 : 3;
+  const count = roll < 0.1 ? 0 : roll < 0.45 ? 1 : roll < 0.8 ? 2 : 3;      // a big world usually has a river or two
   for (let n = 0; n < count; n++) {
-    for (let attempt = 0; attempt < 20; attempt++) {
+    for (let attempt = 0; attempt < 60; attempt++) {
       const vertical = rand() < 0.5;
       const pts = [];
       // Meandering course: a slow S-curve plus random wander, sampled closely so bends are smooth
@@ -117,7 +117,7 @@ function makeRivers(rand) {
         || map.rivers.some((r) => pts.some((p) => closestPointOnPath(r.points, p).d < 80));
       if (tooClose) continue;
       // Width changes a lot along the course: narrow rapids, broad slow stretches, and one or two pond-like pools
-      const base = 16 + rand() * 8, p1 = rand() * 6, p2 = rand() * 6, f1 = 0.35 + rand() * 0.3, f2 = 0.9 + rand() * 0.6;
+      const base = 26 + rand() * 20, p1 = rand() * 6, p2 = rand() * 6, f1 = 0.35 + rand() * 0.3, f2 = 0.9 + rand() * 0.6;
       pts.forEach((p, i) => {
         const wave = 0.5 + 0.5 * Math.sin(i * f1 + p1);
         const ripple = 0.5 + 0.5 * Math.sin(i * f2 + p2);
@@ -125,11 +125,11 @@ function makeRivers(rand) {
       });
       const pools = 1 + Math.floor(rand() * 2);
       for (let k = 0; k < pools; k++) {                            // a pool: the river balloons out over a few points
-        const at = 3 + Math.floor(rand() * (pts.length - 6)), bulge = 14 + rand() * 14;
+        const at = 3 + Math.floor(rand() * (pts.length - 6)), bulge = 22 + rand() * 26;
         for (let i = -3; i <= 3; i++) if (pts[at + i]) pts[at + i].w += bulge * Math.exp(-i * i / 2.2);
       }
       for (let pass = 0; pass < 2; pass++) for (let i = 1; i < pts.length - 1; i++) pts[i].w = (pts[i - 1].w + pts[i].w + pts[i + 1].w) / 3;
-      pts.forEach((p) => { p.w = Math.max(8, Math.min(52, p.w)); });
+      pts.forEach((p) => { p.w = Math.max(10, Math.min(96, p.w)); });
       const river = { points: pts, width: Math.max(...pts.map((p) => p.w)) };   // width = the widest point (used for clearances)
       // Wherever the water so much as touches the road there must be a bridge. Walk along the river,
       // note every stretch that comes within reach of the road, and reject rivers that run alongside
@@ -183,14 +183,15 @@ const nearWater = (p, extra) => nearRiver(p, extra) || map.ponds.some((q) => inP
 // Up to three small ponds on open grass, well away from roads, rivers, castles and signposts.
 function makePonds(rand) {
   map.ponds = [];
-  const want = rand() < 0.2 ? 0 : 1 + Math.floor(rand() * 4);
-  for (let attempt = 0; attempt < 120 && map.ponds.length < want; attempt++) {
-    const rx = 18 + rand() * 16, ry = rx * (0.55 + rand() * 0.2);
-    const p = { x: 60 + rand() * (W - 120), y: 60 + rand() * (H - 120), rx, ry, seed: Math.floor(rand() * 1e6) };
-    if (roadDistance(p) < rx + 44) continue;
-    if (nearRiver(p, rx + 24)) continue;
-    if (map.castles.some((k) => dist(p, k) < 120 * k.scale) || map.entries.some((e) => dist(p, e) < rx + 60)) continue;
-    if (map.ponds.some((q) => dist(p, q) < p.rx + q.rx + 40)) continue;
+  const want = rand() < 0.15 ? 0 : 1 + Math.floor(rand() * 4);
+  for (let attempt = 0; attempt < 160 && map.ponds.length < want; attempt++) {
+    const p = { x: 60 + rand() * (W - 120), y: 60 + rand() * (H - 120), seed: Math.floor(rand() * 1e6) };
+    // The pond grows to fit the open ground around it: a small pool squeezed between roads, a lake in a wide meadow
+    const riverRoom = map.rivers.length ? Math.min(...map.rivers.map((r) => closestPointOnPath(r.points, p).d - r.width / 2)) : Infinity;
+    const room = Math.min(roadDistance(p), riverRoom, ...map.castles.map((k) => dist(p, k) - 60 * k.scale), ...map.entries.map((e) => dist(p, e) - 40), ...map.ponds.map((q) => dist(p, q) - q.rx - 30));
+    const rx = Math.min(120, (room - 40) * 0.9);
+    if (rx < 18) continue;
+    p.rx = rx * (0.85 + rand() * 0.15); p.ry = p.rx * (0.55 + rand() * 0.2);
     // A gently irregular outline: a radius factor for each of 12 directions
     p.wobble = Array.from({ length: 12 }, () => 0.82 + rand() * 0.36);
     map.ponds.push(p);
