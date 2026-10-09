@@ -67,7 +67,7 @@ export function generateMap(seed) {
   for (const r of map.routes) if (r.exit && !exits.some((e) => e.edge === r.exit.edge && e.pos === r.exit.pos)) exits.push(r.exit);
   // Gates mark the exits: where the road leaves the map, facing outward
   map.exits = exits.map((ex) => { const c = center(edgeCell(ex.edge, ex.pos)), inn = INWARD[ex.edge]; return { edge: ex.edge, pos: ex.pos, x: c.x + inn.dc * 108, y: c.y + inn.dr * 108, out: { x: -inn.dc, y: -inn.dr } }; });   // the gate stands where the margin begins
-  const two = exits.length > 1, fullScale = two ? 0.82 : 0.95;
+  const two = exits.length > 1, fullScale = two ? 0.9 : 1.05;
   // How much grass is around a castle of size sc at (x, y)? The least distance from its walls to any road.
   const roomAround = (x, y, sc) => {
     const hw = 52 * sc, top = y - 96 * sc, bot = y + 12 * sc;
@@ -85,7 +85,7 @@ export function generateMap(seed) {
     const c = center(edgeCell(ex.edge, ex.pos));
     const other = exits.find((o) => o !== ex && o.edge === ex.edge);
     const options = [];
-    for (const sc of [fullScale, 0.75, 0.62]) {
+    for (const sc of [fullScale, 0.82, 0.68, 0.58]) {
       const yLo = 118 * sc + 12, yHi = H - 14 * sc - 12, xLo = 52 * sc + 12, xHi = W - 52 * sc - 12;   // banner and drawbridge stay off the edges
       if (ex.edge === "right" || ex.edge === "left") {
         const x = ex.edge === "right" ? xHi : xLo;
