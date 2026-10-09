@@ -475,13 +475,28 @@ function clear(p, { road = 50, spots = 48, castle = 85, entry = 50, deco = 0, cr
 function scatterDeco(rand) {
   const out = [];
   map.deco = out;
-  for (let i = 0; i < 700 && out.length < 48; i++) {
+  let placed = 0;                                                        // scenery pieces placed on their own (woods add extra trees)
+  for (let i = 0; i < 700 && placed < 48; i++) {
     const p = { x: 20 + rand() * (W - 40), y: 20 + rand() * (H - 40) };
     if (!clear(p, { deco: 40 })) continue;
+    placed++;
     const roll = rand();
     const type = roll < 0.32 ? "tree" : roll < 0.5 ? "bush" : roll < 0.63 ? "rock" : roll < 0.85 ? "flower" : roll < 0.93 ? "mushroom" : "stump";
     // Every piece of scenery gets its own look: a variant, a size and a seed for its small random details
-    out.push({ type, x: p.x, y: p.y, s: 0.8 + rand() * 0.5, variant: Math.floor(rand() * 3), seed: Math.floor(rand() * 1e6) });
+    const size = type === "flower" ? 0.5 + rand() * 0.25 : type === "mushroom" ? 0.55 + rand() * 0.25 : type === "stump" ? 0.6 + rand() * 0.2 : 0.8 + rand() * 0.5;   // small things stay small
+    out.push({ type, x: p.x, y: p.y, s: size, variant: Math.floor(rand() * 3), seed: Math.floor(rand() * 1e6) });
+    // Company: trees often come as a small wood of 2 to 4, flowers as a patch of 3 to 7
+    const group = type === "tree" && rand() < 0.55 ? { n: 2 + Math.floor(rand() * 3), near: 28, far: 62, gap: 22, s: () => 0.75 + rand() * 0.5 }
+      : type === "flower" && rand() < 0.75 ? { n: 3 + Math.floor(rand() * 5), near: 10, far: 34, gap: 8, s: () => 0.45 + rand() * 0.3 } : null;
+    if (group) {
+      for (let k = 0, tries = 0; k < group.n && tries < 24; tries++) {
+        const a = rand() * Math.PI * 2, d = group.near + rand() * (group.far - group.near);
+        const q = { x: p.x + Math.cos(a) * d, y: p.y + Math.sin(a) * d * 0.7 };
+        if (q.x < 20 || q.x > W - 20 || q.y < 20 || q.y > H - 20 || !clear(q, { deco: group.gap })) continue;
+        out.push({ type, x: q.x, y: q.y, s: group.s(), variant: Math.floor(rand() * 3), seed: Math.floor(rand() * 1e6) });
+        k++;
+      }
+    }
   }
   return out;
 }

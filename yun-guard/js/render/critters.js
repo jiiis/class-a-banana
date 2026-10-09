@@ -22,7 +22,7 @@ export function drawCritter(c) {
   ctx.restore();
 }
 
-const CRITTER_SCALE = { bunny: 0.7, chicken: 0.65, fox: 0.9 };
+const CRITTER_SCALE = { bunny: 0.7, chicken: 0.8, fox: 0.9 };
 
 const DRAW = {
   bunny(phase, moving) {
