@@ -41,8 +41,10 @@ html, body {
 .hud-left { top: 14px; left: 16px; gap: 18px; }          /* stats, top-left */
 .hud-topright { top: 16px; right: 16px; }                /* map number, top-right */
 .hud-right { bottom: 14px; right: 16px; gap: 12px; }     /* buttons, bottom-right */
-.hud-logo { bottom: 14px; left: 16px; gap: 10px; opacity: 0.9; }   /* logo, bottom-left */
+.hud-logo { bottom: 14px; left: 16px; gap: 10px; opacity: 0.9; align-items: flex-end !important; }   /* logo, bottom-left; words sit on the logo's baseline */
 .hud-logo img { width: 64px; height: 64px; border-radius: 14px; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5); }
+.hud-logo .brand { font-family: Impact, "Arial Black", "Helvetica Neue", Arial, sans-serif; font-size: 24px; line-height: 1; padding-bottom: 9px; letter-spacing: 1px; color: #f1efe6; text-shadow: 0 2px 3px rgba(0, 0, 0, 0.9), 0 0 12px rgba(0, 0, 0, 0.6); }
+.hud-logo .brand em { font-style: normal; color: var(--accent); }
 .stat {
   display: flex;
   align-items: center;
@@ -192,7 +194,7 @@ canvas { display: block; }
   text-align: center;
   z-index: 3;
 }
-#heroPick h1 { font-size: 40px; margin: 0 0 6px; letter-spacing: 2px; }
+#heroPick h1 { font-size: 40px; margin: 0 0 36px; letter-spacing: 2px; }
 #heroPick p { color: var(--muted); margin: 0 0 22px; font-size: 16px; }
 #heroPick .cards { display: flex; gap: 12px; }
 #heroPick .card {
@@ -211,7 +213,8 @@ canvas { display: block; }
   border-radius: 10px;
   transition: transform 0.12s, border-color 0.12s;
 }
-#heroPick .card:hover { transform: translateY(-4px); border-color: var(--accent); filter: none; }
+#heroPick .card { --tint: var(--accent); border-top-color: var(--tint); }
+#heroPick .card:hover { transform: translateY(-4px); border-color: var(--tint); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--tint); filter: none; }
 #heroPick .card .portrait { display: inline-flex; color: var(--accent); }
 #heroPick .card .portrait .ico { width: 44px; height: 44px; }
 #heroPick .card[data-hero="avril"] .portrait { color: #f06292; }
@@ -220,10 +223,10 @@ canvas { display: block; }
 #heroPick .card[data-hero="meilin"] .portrait { color: #80deea; }
 #heroPick .card strong { font-size: 18px; }
 #heroPick .card small { color: var(--muted); font-size: 12px; font-weight: 400; line-height: 1.4; }
-#heroPick .card[data-hero="avril"] { border-top-color: #f06292; }
-#heroPick .card[data-hero="ember"] { border-top-color: #ff7043; }
-#heroPick .card[data-hero="willow"] { border-top-color: #8bc34a; }
-#heroPick .card[data-hero="meilin"] { border-top-color: #80deea; }
+#heroPick .card[data-hero="avril"] { --tint: #f06292; }
+#heroPick .card[data-hero="ember"] { --tint: #ff7043; }
+#heroPick .card[data-hero="willow"] { --tint: #8bc34a; }
+#heroPick .card[data-hero="meilin"] { --tint: #80deea; }
 
 /* ---------- Paused ---------- */
 #paused {

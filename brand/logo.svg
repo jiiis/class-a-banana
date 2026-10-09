@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 200" width="720" height="200">
+  <!-- 4pril.fun wordmark -->
+  <defs>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffd86b"/><stop offset="1" stop-color="#e3a12a"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(16 8) scale(0.72)">
+    <g fill="url(#gold)" stroke="#6b4a0f" stroke-width="4" stroke-linejoin="round">
+      <path d="M62 150 L132 54 L156 54 L156 150 Z M98 128 L132 128 L132 84 Z"/>
+      <rect x="132" y="64" width="40" height="150"/>
+      <path d="M126 64 h52 v-16 h-10 v8 h-10 v-8 h-12 v8 h-10 v-8 h-10 z"/>
+      <rect x="58" y="128" width="130" height="26" rx="3"/>
+    </g>
+    <rect x="146" y="92" width="12" height="18" rx="6" fill="#1a1510"/>
+    <path d="M142 214 v-26 a10 10 0 0 1 20 0 v26 z" fill="#1a1510"/>
+    <rect x="150" y="18" width="4" height="34" fill="#5d4037"/>
+    <path d="M154 20 L190 30 L154 42 Z" fill="#d62828" stroke="#7f0000" stroke-width="2" stroke-linejoin="round"/>
+  </g>
+  <text x="176" y="150" font-family="Impact, 'Arial Black', 'Helvetica Neue', Arial, sans-serif" font-size="128" letter-spacing="2" fill="#f1efe6">pril</text>
+  <text x="386" y="150" font-family="Impact, 'Arial Black', 'Helvetica Neue', Arial, sans-serif" font-size="128" letter-spacing="2" fill="url(#gold)">.fun</text>
+</svg>
