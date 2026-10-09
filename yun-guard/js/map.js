@@ -66,20 +66,45 @@ export function generateMap(seed) {
   const exits = [];
   for (const r of map.routes) if (r.exit && !exits.some((e) => e.edge === r.exit.edge && e.pos === r.exit.pos)) exits.push(r.exit);
   // Gates mark the exits: where the road leaves the map, facing outward
-  map.exits = exits.map((ex) => { const c = center(edgeCell(ex.edge, ex.pos)), inn = INWARD[ex.edge]; return { edge: ex.edge, pos: ex.pos, x: c.x + inn.dc * 90, y: c.y + inn.dr * 90, out: { x: -inn.dc, y: -inn.dr } }; });   // the gate stands where the margin begins
-  const two = exits.length > 1, scale = two ? 0.72 : 0.85;                 // castles are kept small so they never crowd the road
+  map.exits = exits.map((ex) => { const c = center(edgeCell(ex.edge, ex.pos)), inn = INWARD[ex.edge]; return { edge: ex.edge, pos: ex.pos, x: c.x + inn.dc * 108, y: c.y + inn.dr * 108, out: { x: -inn.dc, y: -inn.dr } }; });   // the gate stands where the margin begins
+  const two = exits.length > 1, fullScale = two ? 0.82 : 0.95;
+  // How much grass is around a castle of size sc at (x, y)? The least distance from its walls to any road.
+  const roomAround = (x, y, sc) => {
+    const hw = 52 * sc, top = y - 96 * sc, bot = y + 12 * sc;
+    let best = Infinity;
+    for (let i = 0; i <= 6; i++) for (const [px, py] of [[x - hw + (2 * hw * i) / 6, top], [x - hw + (2 * hw * i) / 6, bot], [x - hw, top + ((bot - top) * i) / 6], [x + hw, top + ((bot - top) * i) / 6]]) best = Math.min(best, roadDistance({ x: px, y: py }));
+    return best;
+  };
+  const gatePillarPoints = (g) => { const px = -g.out.y, py = g.out.x, span = ROAD_WIDTH / 2 + 14; return [{ x: g.x + px * span, y: g.y + py * span }, { x: g.x - px * span, y: g.y - py * span }]; };
+  const gateClear = (x, y, sc) => map.exits.every((g) => gatePillarPoints(g).every((pp) => Math.abs(pp.x - x) > 52 * sc + 14 || pp.y < y - 96 * sc - 10 || pp.y > y + 12 * sc + 60));
+  // Enough room around it first (a road's width of grass), then as close to its own road as possible, full size preferred
+  const score = (o) => (gateClear(o.x, o.y, o.sc) ? 0 : -1000) + Math.min(roomAround(o.x, o.y, o.sc), 70) + (o.pref ? 10 : 0) - o.d * 0.05 + o.sc * 30;   // bigger is better when the room is similar
+  // Each castle picks, from spots along its edge on both sides of the road (and a smaller size if it must),
+  // the one with the most open grass, leaning away from a sister castle on the same edge when both are fine
   map.castles = exits.map((ex, i) => {
     const c = center(edgeCell(ex.edge, ex.pos));
-    if (ex.edge === "right" || ex.edge === "left") {
-      const x = ex.edge === "right" ? W - 56 : 56;                          // hugging the edge, clear of the gate pillars
-      const other = exits.find((o) => o !== ex && o.edge === ex.edge);
-      let above = c.y > H / 2;
-      if (other) { const oy = center(edgeCell(other.edge, other.pos)).y; above = c.y < oy ? (c.y >= 200 || Math.abs(oy - c.y) < 170) : (c.y > 430 && Math.abs(oy - c.y) >= 150); }
-      return { x, y: clamp(above ? c.y - 36 : c.y + 100, 118 * scale + 6, H - 14 * scale - 8), scale, style: i };
-    }
     const other = exits.find((o) => o !== ex && o.edge === ex.edge);
-    const side = other ? (c.x < center(edgeCell(other.edge, other.pos)).x ? -1 : 1) : (c.x < W / 2 ? 1 : -1);
-    return { x: clamp(c.x + side * 104, 40, W - 40), y: ex.edge === "top" ? 118 * scale + 6 : H - 14 * scale - 8, scale, style: i };   // room for the banner above and the drawbridge below
+    const options = [];
+    for (const sc of [fullScale, 0.75, 0.62]) {
+      const yLo = 118 * sc + 12, yHi = H - 14 * sc - 12, xLo = 52 * sc + 12, xHi = W - 52 * sc - 12;   // banner and drawbridge stay off the edges
+      if (ex.edge === "right" || ex.edge === "left") {
+        const x = ex.edge === "right" ? xHi : xLo;
+        const oy = other ? center(edgeCell(other.edge, other.pos)).y : null;
+        for (const d of [66, 126, 186, 246, 306, 366]) {
+          options.push({ x, y: clamp(c.y - d, yLo, yHi), pref: oy === null || c.y < oy, d, sc });
+          options.push({ x, y: clamp(c.y + d + 80, yLo, yHi), pref: oy === null || c.y > oy, d, sc });
+        }
+      } else {
+        const y = ex.edge === "top" ? yLo : yHi;
+        const ox = other ? center(edgeCell(other.edge, other.pos)).x : null;
+        for (const d of [124, 184, 244, 304, 364, 424, 484]) {
+          options.push({ x: clamp(c.x - d, xLo, xHi), y, pref: ox === null || c.x < ox, d, sc });
+          options.push({ x: clamp(c.x + d, xLo, xHi), y, pref: ox === null || c.x > ox, d, sc });
+        }
+      }
+    }
+    const best = options.sort((p, q) => score(q) - score(p))[0];
+    return { x: best.x, y: best.y, scale: best.sc, style: i };
   });
   map.castle = map.castles[0];
 
@@ -99,7 +124,7 @@ function makeRivers(rand) {
   const roll = rand();
   const count = roll < 0.1 ? 0 : roll < 0.45 ? 1 : roll < 0.8 ? 2 : 3;      // a big world usually has a river or two
   for (let n = 0; n < count; n++) {
-    for (let attempt = 0; attempt < 60; attempt++) {
+    for (let attempt = 0; attempt < 240; attempt++) {
       const vertical = rand() < 0.5;
       const pts = [];
       // Meandering course: a slow S-curve plus random wander, sampled closely so bends are smooth
@@ -134,7 +159,7 @@ function makeRivers(rand) {
       // Wherever the water so much as touches the road there must be a bridge. Walk along the river,
       // note every stretch that comes within reach of the road, and reject rivers that run alongside
       // the road at a shallow angle (they would need an endless bridge).
-      const bridges = [];
+      const bridges = [], nearMisses = [];
       let shallow = false;
       for (let i = 0; i < pts.length - 1 && !shallow; i++) {
         const a = pts[i], b = pts[i + 1], len = dist(a, b);
@@ -142,7 +167,10 @@ function makeRivers(rand) {
         for (let d = 0; d < len; d += 6) {
           const p = { x: a.x + tx * d, y: a.y + ty * d }, w = a.w + (b.w - a.w) * (d / len);
           const q = nearestRoadPoint(p);
-          if (q.d > ROAD_WIDTH / 2 + w / 2 + 6) continue;
+          if (q.d > ROAD_WIDTH / 2 + w / 2 + 6) {
+            if (q.d < ROAD_WIDTH / 2 + w / 2 + 36) nearMisses.push(q);   // brushing past the road without crossing it
+            continue;
+          }
           const cross = Math.abs(tx * q.ny - ty * q.nx);              // sin of the angle between river and road
           if (cross < 0.5) { shallow = true; break; }
           const near = bridges.find((bg) => dist(bg, q) < 50);
@@ -151,6 +179,8 @@ function makeRivers(rand) {
         }
       }
       if (shallow) continue;
+      // A river may hug the road only right where it crosses (the bridge approaches); anywhere else it must keep its distance
+      if (nearMisses.some((q) => !bridges.some((bg) => dist(bg, q) < 80))) continue;
       map.rivers.push(river);
       map.bridges.push(...bridges);
       break;
@@ -189,7 +219,7 @@ function makePonds(rand) {
     // The pond grows to fit the open ground around it: a small pool squeezed between roads, a lake in a wide meadow
     const riverRoom = map.rivers.length ? Math.min(...map.rivers.map((r) => closestPointOnPath(r.points, p).d - r.width / 2)) : Infinity;
     const room = Math.min(roadDistance(p), riverRoom, ...map.castles.map((k) => dist(p, k) - 60 * k.scale), ...map.entries.map((e) => dist(p, e) - 40), ...map.ponds.map((q) => dist(p, q) - q.rx - 30));
-    const rx = Math.min(120, (room - 40) * 0.9);
+    const rx = Math.min(170, (room - 72) * 1.0);                            // keeps a clear bank of grass between the water and the road
     if (rx < 30) continue;                                                   // no puddles: too cramped here, try elsewhere
     p.rx = rx * (0.85 + rand() * 0.15); p.ry = p.rx * (0.55 + rand() * 0.2);
     // A gently irregular outline: a radius factor for each of 12 directions
