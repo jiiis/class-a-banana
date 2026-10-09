@@ -35,6 +35,14 @@ export function initTouch() {
   }, { passive: false });
   window.addEventListener("touchcancel", () => { start = null; }, { passive: false });
 
+  // Scrolling pans too: two-finger swipes on a trackpad or Magic Mouse glide the view in any direction
+  window.addEventListener("wheel", (ev) => {
+    ev.preventDefault();                                         // never scroll or pinch-zoom the page itself
+    if (ev.ctrlKey || !canPan()) return;                         // ctrl+wheel is a pinch gesture: ignore it
+    const k = ev.deltaMode === 1 ? 16 : 1;                       // line-based wheels report in lines
+    panBy(-ev.deltaX * k, -ev.deltaY * k);
+  }, { passive: false });
+
   // Mouse dragging on the board (buttons and menus are left alone)
   let mouse = null, mouseDragged = false;
   window.addEventListener("mousedown", (ev) => {

@@ -190,7 +190,7 @@ function makePonds(rand) {
     const riverRoom = map.rivers.length ? Math.min(...map.rivers.map((r) => closestPointOnPath(r.points, p).d - r.width / 2)) : Infinity;
     const room = Math.min(roadDistance(p), riverRoom, ...map.castles.map((k) => dist(p, k) - 60 * k.scale), ...map.entries.map((e) => dist(p, e) - 40), ...map.ponds.map((q) => dist(p, q) - q.rx - 30));
     const rx = Math.min(120, (room - 40) * 0.9);
-    if (rx < 18) continue;
+    if (rx < 30) continue;                                                   // no puddles: too cramped here, try elsewhere
     p.rx = rx * (0.85 + rand() * 0.15); p.ry = p.rx * (0.55 + rand() * 0.2);
     // A gently irregular outline: a radius factor for each of 12 directions
     p.wobble = Array.from({ length: 12 }, () => 0.82 + rand() * 0.36);
