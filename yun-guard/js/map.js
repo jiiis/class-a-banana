@@ -1,5 +1,5 @@
 import { W, H, ROWS, COLS, CELL, ROAD_WIDTH } from "./config.js";
-import { rng, dist, closestPointOnPath } from "./util.js";
+import { rng, dist, closestPointOnPath, clamp } from "./util.js";
 
 // The generated world. Filled in by generateMap() before anything else runs.
 export const map = {
@@ -66,20 +66,20 @@ export function generateMap(seed) {
   const exits = [];
   for (const r of map.routes) if (r.exit && !exits.some((e) => e.edge === r.exit.edge && e.pos === r.exit.pos)) exits.push(r.exit);
   // Gates mark the exits: where the road leaves the map, facing outward
-  map.exits = exits.map((ex) => { const c = center(edgeCell(ex.edge, ex.pos)), inn = INWARD[ex.edge]; return { edge: ex.edge, pos: ex.pos, x: c.x + inn.dc * 18, y: c.y + inn.dr * 18, out: { x: -inn.dc, y: -inn.dr } }; });
-  const two = exits.length > 1, scale = two ? 0.8 : 1;
+  map.exits = exits.map((ex) => { const c = center(edgeCell(ex.edge, ex.pos)), inn = INWARD[ex.edge]; return { edge: ex.edge, pos: ex.pos, x: c.x + inn.dc * 90, y: c.y + inn.dr * 90, out: { x: -inn.dc, y: -inn.dr } }; });   // the gate stands where the margin begins
+  const two = exits.length > 1, scale = two ? 0.72 : 0.85;                 // castles are kept small so they never crowd the road
   map.castles = exits.map((ex, i) => {
     const c = center(edgeCell(ex.edge, ex.pos));
     if (ex.edge === "right" || ex.edge === "left") {
-      const x = ex.edge === "right" ? W - 64 : 64;
+      const x = ex.edge === "right" ? W - 56 : 56;                          // hugging the edge, clear of the gate pillars
       const other = exits.find((o) => o !== ex && o.edge === ex.edge);
       let above = c.y > 300;
       if (other) { const oy = center(edgeCell(other.edge, other.pos)).y; above = c.y < oy ? (c.y >= 200 || Math.abs(oy - c.y) < 170) : (c.y > 430 && Math.abs(oy - c.y) >= 150); }
-      return { x, y: above ? c.y - (two ? 40 : 45) : c.y + (two ? 110 : 130), scale, style: i };
+      return { x, y: above ? c.y - 36 : c.y + 100, scale, style: i };
     }
     const other = exits.find((o) => o !== ex && o.edge === ex.edge);
     const side = other ? (c.x < center(edgeCell(other.edge, other.pos)).x ? -1 : 1) : (c.x < W / 2 ? 1 : -1);
-    return { x: c.x + side * 100, y: ex.edge === "top" ? 100 : H - 24, scale: 0.8, style: i };
+    return { x: clamp(c.x + side * 104, 40, W - 40), y: ex.edge === "top" ? 92 : H - 22, scale, style: i };
   });
   map.castle = map.castles[0];
 

@@ -494,8 +494,15 @@ function drawCastle(c, x, y, styleIndex = 0) {
   courses(x - 16, y - 70, 32, 36);
   if (S.square) roof(x, y - 70, 18, 16); else battlements(x - 16, y - 70, 32, S.keepLight, S.keepDark);
   slit(x - 7, y - 62); slit(x + 7, y - 62);
-  rect(c, x - 3, y - 48, 6, 6, "#1b1b1b");                   // window
-  if (S.square) { c.fillStyle = "#1b1b1b"; c.beginPath(); c.arc(x, y - 48, 3, Math.PI, 0); c.fill(); }   // arched window top
+  const glowWin = (wx, wy, w, h) => {                        // a warmly lit window
+    const gg = c.createRadialGradient(wx + w / 2, wy + h / 2, 1, wx + w / 2, wy + h / 2, 9);
+    gg.addColorStop(0, "rgba(255,210,120,0.45)"); gg.addColorStop(1, "rgba(255,210,120,0)");
+    c.fillStyle = gg; c.fillRect(wx - 8, wy - 8, w + 16, h + 16);
+    rect(c, wx, wy, w, h, "#ffcc80", "#3a3733", 0.8); line(c, wx + w / 2, wy, wx + w / 2, wy + h, "#3a3733", 0.8);
+  };
+  glowWin(x - 3, y - 50, 6, 7);                              // keep window
+  if (S.square) { c.fillStyle = "#ffcc80"; c.beginPath(); c.arc(x, y - 50, 3, Math.PI, 0); c.fill(); }
+  glowWin(x - 36, y - 20, 5, 6); glowWin(x + 31, y - 20, 5, 6);   // wall windows
   // Gatehouse: arched gate, portcullis, wooden doors
   stone(x - 13, y - 30, 26, 34, S.gateLight, S.gateDark);
   c.fillStyle = "#1b1b1b";
@@ -507,6 +514,11 @@ function drawCastle(c, x, y, styleIndex = 0) {
   line(c, x - 6, y - 14, x + 6, y - 14, "#263238", 1.2);
   circle(c, x - 2.5, y - 6, 0.8, "#ffd54f"); circle(c, x + 2.5, y - 6, 0.8, "#ffd54f");    // door rings
   c.strokeStyle = S.square ? "#c9a977" : "#8a8680"; c.lineWidth = 1.5; c.beginPath(); c.arc(x, y - 12, 8.5, Math.PI, 0); c.stroke();   // arch stones
+  // Heraldic shield above the gate in the banner colour, and a plank drawbridge laid down in front
+  poly(c, [[x - 5, y - 29], [x + 5, y - 29], [x + 5, y - 24], [x, y - 20], [x - 5, y - 24]], S.banner, "#ffd54f", 1);
+  line(c, x, y - 28, x, y - 21, "#ffd54f", 1); line(c, x - 4, y - 26, x + 4, y - 26, "#ffd54f", 1);
+  rect(c, x - 8, y + 4, 16, 7, "#6d4c41", "#3e2723", 1); for (const px of [-5, -1.5, 2, 5.5]) line(c, x + px, y + 4, x + px, y + 11, "#4e342e", 1);
+  line(c, x - 7, y + 4, x - 9, y - 6, "#8d6e63", 1); line(c, x + 7, y + 4, x + 9, y - 6, "#8d6e63", 1);     // chains
   // Corner towers: round with slate cones, or square with tiled pyramid roofs
   for (const tx of [x - 40, x + 40]) {
     const g = c.createLinearGradient(tx - 12, 0, tx + 12, 0);
@@ -516,6 +528,10 @@ function drawCastle(c, x, y, styleIndex = 0) {
     if (S.square) { rect(c, tx - 14, y - 66, 28, 4, S.towerLight, S.outline, 1); roof(tx, y - 66, 16, 20); }   // ledge and pyramid roof
     else { battlements(tx - 12, y - 64, 24, S.towerLight, S.towerDark); roof(tx, y - 70, 15, 26); }
     slit(tx, y - 54); slit(tx, y - 34);
+    // A pennant on each corner tower
+    const top = S.square ? y - 86 : y - 96;
+    line(c, tx, top + 2, tx, top - 10, "#3e2723", 1.2);
+    poly(c, [[tx, top - 10], [tx + 9, top - 7], [tx, top - 4]], S.banner, "rgba(0,0,0,0.25)", 0.6);
   }
   // (the banner on the keep is animated, drawn each frame in draw.js)
   // Ivy creeping up the wall
