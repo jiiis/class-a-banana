@@ -420,7 +420,7 @@ function forkAndRejoin(main, rand) {
     const i = lo + Math.floor(rand() * Math.floor((hi - lo) * 0.5));
     const j = i + 6 + Math.floor(rand() * Math.max(1, hi - i - 6));
     if (j > hi || !isStraight(cells, i) || !isStraight(cells, j)) continue;
-    const walked = walk(rand, cells[i], cells[j], { avoid: cells, allowedNear: [cells[i], cells[j]], attempts: 60 });
+    const walked = walk(rand, cells[i], cells[j], { avoid: cells, allowedNear: [cells[i], cells[j]], minLen: 6, attempts: 60 });
     if (!walked) continue;
     return { cells: [...cells.slice(0, i + 1), ...walked, ...cells.slice(j)], entry: main.entry, exit: main.exit };
   }
@@ -436,7 +436,7 @@ function separateEntry(main, rand) {
     const j = lo + 2 + Math.floor(rand() * Math.max(1, hi - lo - 4));
     if (!isStraight(cells, j)) continue;
     const start = interiorCell(entry.edge, entry.pos);
-    const walked = walk(rand, start, cells[j], { avoid: cells, allowedNear: [cells[j]], reserved: marginCells(entry.edge, entry.pos), attempts: 60 });
+    const walked = walk(rand, start, cells[j], { avoid: cells, allowedNear: [cells[j]], reserved: marginCells(entry.edge, entry.pos), minLen: 8, attempts: 60 });
     if (!walked) continue;
     return { cells: [...marginCells(entry.edge, entry.pos), start, ...walked, ...cells.slice(j)], entry, exit: main.exit };
   }
@@ -452,7 +452,7 @@ function forkToExit(main, rand) {
     const i = lo + Math.floor(rand() * Math.floor((hi - lo) * 0.7));
     if (!isStraight(cells, i)) continue;
     const goal = interiorCell(exit.edge, exit.pos);
-    const walked = walk(rand, cells[i], goal, { avoid: cells, allowedNear: [cells[i]], reserved: marginCells(exit.edge, exit.pos), includeGoal: true, attempts: 60 });
+    const walked = walk(rand, cells[i], goal, { avoid: cells, allowedNear: [cells[i]], reserved: marginCells(exit.edge, exit.pos), includeGoal: true, minLen: 8, attempts: 60 });
     if (!walked) continue;
     return { cells: [...cells.slice(0, i + 1), ...walked, ...marginCells(exit.edge, exit.pos).reverse()], entry: main.entry, exit };
   }
@@ -466,8 +466,8 @@ function separateRoute(main, rand) {
     const exit = entry && freeEdgeSpot(rand, main, [main.entry, main.exit, entry]);
     if (!entry || !exit) continue;
     const start = interiorCell(entry.edge, entry.pos), goal = interiorCell(exit.edge, exit.pos);
-    if (start.c === goal.c && start.r === goal.r) continue;
-    const walked = walk(rand, start, goal, { avoid: main.cells, reserved: [...marginCells(entry.edge, entry.pos), ...marginCells(exit.edge, exit.pos)], includeGoal: true, attempts: 60 });
+    if (Math.abs(start.c - goal.c) + Math.abs(start.r - goal.r) < 8) continue;          // ends too close together
+    const walked = walk(rand, start, goal, { avoid: main.cells, reserved: [...marginCells(entry.edge, entry.pos), ...marginCells(exit.edge, exit.pos)], includeGoal: true, bias: 2, minLen: 20, attempts: 60 });
     if (!walked) continue;
     return { cells: [...marginCells(entry.edge, entry.pos), start, ...walked, ...marginCells(exit.edge, exit.pos).reverse()], entry, exit };
   }
