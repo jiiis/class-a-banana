@@ -34,6 +34,16 @@ function chooseHero(kind) {
   document.getElementById("pause").disabled = false;
   sfx("select");
 }
+// Or go it alone: towers only, no legend on the field
+function startSolo() {
+  state.heroes = []; state.hero = null; state.dog = null; state.eagle = null;
+  heroPick.style.display = "none";
+  document.getElementById("next").disabled = false;
+  document.getElementById("pause").disabled = false;
+  sfx("select");
+}
+document.getElementById("noLegend").addEventListener("click", startSolo);
+if (preset === "none") startSolo();
 document.getElementById("next").disabled = true;          // until a legend is chosen
 document.getElementById("pause").disabled = true;
 for (const card of heroPick.querySelectorAll(".card")) card.addEventListener("click", () => chooseHero(card.dataset.hero));
@@ -102,7 +112,7 @@ document.getElementById("next").addEventListener("click", startWave);
 function restartLevel() {
   const q = new URLSearchParams();
   q.set("seed", map.seed);
-  if (state.hero) q.set("hero", state.hero.kind);
+  q.set("hero", state.hero ? state.hero.kind : "none");
   location.href = `${location.pathname}?${q}`;
 }
 document.getElementById("restart-level").addEventListener("click", restartLevel);

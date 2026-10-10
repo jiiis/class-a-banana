@@ -15,6 +15,7 @@ const P = {
   sparkles:  '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 17l.8 2.2L22 20l-2.2.8L19 23l-.8-2.2L16 20l2.2-.8z"/>',
   bomb:      '<circle cx="10" cy="14" r="7"/><path d="M15 9l3-3"/><path d="M18 6l2-2M20 7l1 1M21 3v2"/>',
   shield:    '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>',
+  shieldOff: '<path d="M12 3l8 3v6c0 2-.6 3.8-1.6 5.3"/><path d="M5.2 7.6C4.5 7.9 4 8 4 8v4c0 5 3.5 8 8 9 1.8-.4 3.4-1.1 4.7-2.1"/><path d="M3 3l18 18"/>',
   shieldCheck:'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/>',
   zap:       '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',
   chevrons:  '<path d="M6 6l6 6-6 6"/><path d="M13 6l6 6-6 6"/>',

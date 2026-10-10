@@ -243,6 +243,20 @@ canvas { display: block; }
 #heroPick .card strong { font-size: 18px; margin-top: 4px; }
 #heroPick .card em { font-style: normal; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; padding: 3px 10px; border-radius: 999px; color: var(--tint); background: color-mix(in srgb, var(--tint) 14%, transparent); }
 #heroPick .card small { color: var(--muted); font-size: 12px; font-weight: 400; line-height: 1.45; margin-top: 4px; }
+#heroPick .ghost {
+  margin-top: 30px;
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 18px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 13px; font-weight: 600; letter-spacing: 0.5px; text-transform: none;
+  animation: cardIn 0.5s ease 0.34s both;
+  transition: color 0.15s, border-color 0.15s, background 0.15s, transform 0.12s;
+}
+#heroPick .ghost .ico { width: 16px; height: 16px; vertical-align: 0; }
+#heroPick .ghost:hover { color: var(--text); border-color: rgba(255, 255, 255, 0.4); background: rgba(255, 255, 255, 0.06); transform: translateY(-2px); filter: none; }
 #heroPick .card[data-hero="avril"] { --tint: #f06292; }
 #heroPick .card[data-hero="ember"] { --tint: #ff7043; }
 #heroPick .card[data-hero="willow"] { --tint: #8bc34a; }
