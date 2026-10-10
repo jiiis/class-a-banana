@@ -460,9 +460,10 @@ function drawGate(c, g) {
     castShadow(c, p.x, p.y + 4, 9, 30);
     const grad = c.createLinearGradient(p.x - 9, 0, p.x + 9, 0);
     grad.addColorStop(0, "#b8b4ac"); grad.addColorStop(0.6, "#8f8b84"); grad.addColorStop(1, "#5a5650");
-    rect(c, p.x - 9, p.y - 34, 18, 40, grad, "#3a3733", 1.2);
-    for (let yy = p.y - 28; yy < p.y + 4; yy += 8) line(c, p.x - 9, yy, p.x + 9, yy, "rgba(40,36,32,0.35)", 1);
-    for (const xx of [p.x - 9, p.x - 2, p.x + 5]) rect(c, xx, p.y - 40, 4, 7, "#a8a49c", "#3a3733", 1);   // three slim merlons, flush with the pillar
+    poly(c, [[p.x - 8, p.y - 34], [p.x + 8, p.y - 34], [p.x + 10.5, p.y + 6], [p.x - 10.5, p.y + 6]], grad, "#3a3733", 1.2);   // tapered: a touch wider at the foot
+    for (let yy = p.y - 28; yy < p.y + 4; yy += 8) { const hw = 8 + ((yy - (p.y - 34)) / 40) * 2.5; line(c, p.x - hw, yy, p.x + hw, yy, "rgba(40,36,32,0.35)", 1); }
+    rect(c, p.x - 11.5, p.y + 4, 23, 4, "#7a766e", "#3a3733", 1);                                        // plinth
+    for (const xx of [p.x - 8, p.x - 2, p.x + 4]) rect(c, xx, p.y - 40, 4, 7, "#a8a49c", "#3a3733", 1);   // three slim merlons, flush with the pillar top
     rect(c, p.x - 1.5, p.y - 46, 3, 8, "#4e342e");                                                       // torch bracket
   }
 }
