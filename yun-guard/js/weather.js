@@ -54,9 +54,7 @@ export function drawWeather(ctx) {
   if (!w || !w.type || w.intensity <= 0) return;
   const k = w.intensity;
   if (w.type === "rain") {
-    ctx.fillStyle = `rgba(30,45,80,${0.22 * k})`;            // the sky darkens
-    ctx.fillRect(0, 0, W, H);
-    ctx.strokeStyle = `rgba(200,225,255,${0.45 * k})`; ctx.lineWidth = 1; ctx.lineCap = "round";
+    ctx.strokeStyle = `rgba(200,225,255,${0.35 * k})`;        // no overall tint: just the rain itself ctx.lineWidth = 1; ctx.lineCap = "round";
     ctx.beginPath();
     for (const d of w.drops) { ctx.moveTo(d.x, d.y); ctx.lineTo(d.x - d.len * 0.12, d.y + d.len); }
     ctx.stroke();
@@ -64,9 +62,7 @@ export function drawWeather(ctx) {
     ctx.fillStyle = `rgba(220,235,255,${0.3 * k})`;
     for (let i = 0; i < w.drops.length; i += 9) { const d = w.drops[i]; if (d.y > H - 40) { ctx.beginPath(); ctx.ellipse(d.x, H - 4 - (i % 7) * 60 / 7 * 0, 2.5, 1, 0, 0, Math.PI * 2); ctx.fill(); } }
   } else {
-    ctx.fillStyle = `rgba(230,240,255,${0.12 * k})`;         // a pale winter haze
-    ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = `rgba(255,255,255,${0.85 * k})`;
+    ctx.fillStyle = `rgba(255,255,255,${0.85 * k})`;         // no haze: just the falling snow
     for (const d of w.drops) { ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2); ctx.fill(); }
   }
 }
