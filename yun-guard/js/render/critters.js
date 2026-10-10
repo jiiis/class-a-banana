@@ -122,7 +122,7 @@ const DRAW = {
     }
     ellipse(ctx, 0, -14, 14, 8, white, edge, 0.8);                                                         // body
     ellipse(ctx, -5, -15, 5, 4, black); ellipse(ctx, 5, -11, 4, 3, black); ellipse(ctx, 2, -19, 3, 2, black);   // patches
-    ellipse(ctx, -6, -7.5, 3.6, 2.2, "#f8bbd0", "#e59aa6", 0.8);                                            // udder, between the hind legs
+    ellipse(ctx, -3.5, -7.5, 3.6, 2.2, "#f8bbd0", "#e59aa6", 0.8);                                          // udder, just ahead of the hind legs
     line(ctx, -14, -16, -18, -9, white, 1.3); circle(ctx, -18.5, -8, 1.3, black);                            // tail with tuft
     ellipse(ctx, 13, -16 + chew * 0.3, 6, 5, white, edge, 0.8);                                             // head
     ellipse(ctx, 16.5, -13 + chew, 4, 3, "#f8bbd0", "#e59aa6", 0.8);                                        // muzzle
