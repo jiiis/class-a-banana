@@ -461,7 +461,7 @@ function drawGate(c, g) {
     grad.addColorStop(0, "#b8b4ac"); grad.addColorStop(0.6, "#8f8b84"); grad.addColorStop(1, "#5a5650");
     rect(c, p.x - 9, p.y - 34, 18, 40, grad, "#3a3733", 1.2);
     for (let yy = p.y - 28; yy < p.y + 4; yy += 8) line(c, p.x - 9, yy, p.x + 9, yy, "rgba(40,36,32,0.35)", 1);
-    for (let xx = p.x - 9; xx < p.x + 9; xx += 7) rect(c, xx, p.y - 40, 5, 7, "#a8a49c", "#3a3733", 1);   // battlements
+    for (const xx of [p.x - 9, p.x - 2, p.x + 5]) rect(c, xx, p.y - 40, 4, 7, "#a8a49c", "#3a3733", 1);   // three slim merlons, flush with the pillar
     rect(c, p.x - 1.5, p.y - 46, 3, 8, "#4e342e");                                                       // torch bracket
   }
 }
