@@ -237,10 +237,11 @@ function drawRiver(c, r, rand, pass) {
   });
   // Fill the band between the two banks, scaled to a fraction of the local width, shifted sideways if asked
   const band = (scale, color, extra = 0, shift = 0) => {
+    const sc = (i) => (typeof scale === "function" ? scale(i) : scale);
     c.fillStyle = color;
     c.beginPath();
-    pts.forEach((p, i) => { const o = p.w * scale / 2 + extra + shift; const x = p.x + normals[i].x * o, y = p.y + normals[i].y * o; i ? c.lineTo(x, y) : c.moveTo(x, y); });
-    for (let i = pts.length - 1; i >= 0; i--) { const p = pts[i], o = -(p.w * scale / 2 + extra) + shift; c.lineTo(p.x + normals[i].x * o, p.y + normals[i].y * o); }
+    pts.forEach((p, i) => { const o = p.w * sc(i) / 2 + extra + shift; const x = p.x + normals[i].x * o, y = p.y + normals[i].y * o; i ? c.lineTo(x, y) : c.moveTo(x, y); });
+    for (let i = pts.length - 1; i >= 0; i--) { const p = pts[i], o = -(p.w * sc(i) / 2 + extra) + shift; c.lineTo(p.x + normals[i].x * o, p.y + normals[i].y * o); }
     c.closePath();
     c.fill();
   };
@@ -250,8 +251,26 @@ function drawRiver(c, r, rand, pass) {
     return;
   }
   band(1, "#2f6a93");                                                 // deep water
-  band(0.6, "#4a93c4", 0, 1.5);                                       // current, drifting toward one bank
-  band(0.25, "rgba(140,200,235,0.55)", 0, 1.5);                       // sunlit centre
+  // The shallows lighten toward the middle in soft, wavering layers rather than hard stripes
+  const ph = rand() * 6;
+  band((i) => 0.86 + Math.sin(i * 0.7 + ph) * 0.05, "rgba(74,147,196,0.35)", 0, 1);
+  band((i) => 0.68 + Math.sin(i * 0.9 + ph + 1) * 0.07, "rgba(74,147,196,0.45)", 0, 2);
+  band((i) => 0.46 + Math.sin(i * 1.1 + ph + 2) * 0.08, "rgba(120,185,225,0.35)", 0, 2.5);
+  band((i) => 0.22 + Math.sin(i * 1.4 + ph + 3) * 0.06, "rgba(160,210,240,0.35)", 0, 2.5);
+  // Ripples: short pale streaks along the flow, and a few darker eddies near the banks
+  for (let i = 0; i < pts.length - 1; i++) {
+    const a = pts[i], b = pts[i + 1], n = normals[i], tx = (b.x - a.x), ty = (b.y - a.y);
+    for (let k = 0; k < 3; k++) {
+      if (rand() < 0.55) continue;
+      const t = rand(), o = (rand() - 0.5) * a.w * 0.8, x = a.x + tx * t + n.x * o, y = a.y + ty * t + n.y * o;
+      const len = 0.08 + rand() * 0.1;
+      line(c, x - tx * len, y - ty * len, x + tx * len, y + ty * len, `rgba(200,230,250,${0.15 + rand() * 0.2})`, 1 + rand());
+    }
+    if (rand() < 0.18) {                                              // eddy
+      const side = rand() < 0.5 ? 1 : -1, o = side * a.w * (0.25 + rand() * 0.12);
+      c.strokeStyle = "rgba(30,70,110,0.25)"; c.lineWidth = 1.2; c.beginPath(); c.arc(a.x + n.x * o, a.y + n.y * o, 2 + rand() * 2.5, 0, Math.PI * 1.5); c.stroke();
+    }
+  }
   // Details along the banks, following the local width
   for (let i = 0; i < pts.length - 1; i++) {
     const a = pts[i], b = pts[i + 1], n = normals[i];
@@ -299,6 +318,7 @@ function drawBridge(c, b) {
 // Every function gets a size, a variant (0-2) and its own random generator, so no two pieces look alike.
 const DRAW_DECO = {
   tree(c, x, y, s, v, r) {
+    if (v === 1) s *= 1.35;                                                  // pines grow tall
     shadow(c, x, y + 4 * s, 14 * s, 5 * s);
     if (v === 0) {                                                           // broadleaf: a knobbly canopy of blobs
       const trunk = ["#6d4c41", "#5d4037", "#795548"][Math.floor(r() * 3)];
