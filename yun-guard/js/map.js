@@ -73,7 +73,7 @@ export function generateMap(seed) {
       const gx = c.x + inn.dc * d, gy = c.y + inn.dr * d;
       const span = ROAD_WIDTH / 2 + 14;
       const posts = [{ x: gx + px * span, y: gy + py * span }, { x: gx - px * span, y: gy - py * span }];
-      g = { edge: ex.edge, pos: ex.pos, x: gx, y: gy, out: { x: -inn.dc, y: -inn.dr } };
+      g = { edge: ex.edge, pos: ex.pos, x: gx, y: gy, out: { x: -inn.dc, y: -inn.dr }, style: 0 };   // 0 stone gate, 1 Chinese paifang (set from the castle below)
       if (posts.every((p) => roadDistance(p) > ROAD_WIDTH / 2 + 6)) break;
     }
     return g;
@@ -97,7 +97,7 @@ export function generateMap(seed) {
     const other = exits.find((o) => o !== ex && o.edge === ex.edge);
     const options = [];
     for (const sc of [fullScale, 0.82, 0.68, 0.58]) {
-      const yLo = 118 * sc + 12, yHi = H - 14 * sc - 12, xLo = 52 * sc + 12, xHi = W - 52 * sc - 12;   // banner and drawbridge stay off the edges
+      const yLo = 146 * sc + 10, yHi = H - 14 * sc - 12, xLo = 56 * sc + 12, xHi = W - 56 * sc - 12;   // tallest design (the temple's banner) and widest terrace stay off the edges
       if (ex.edge === "right" || ex.edge === "left") {
         const x = ex.edge === "right" ? xHi : xLo;
         const oy = other ? center(edgeCell(other.edge, other.pos)).y : null;
@@ -115,8 +115,12 @@ export function generateMap(seed) {
       }
     }
     const best = options.sort((p, q) => score(q) - score(p))[0];
-    return { x: best.x, y: best.y, scale: best.sc, style: i };
+    return { x: best.x, y: best.y, scale: best.sc, style: 0 };
   });
+  // Every exit on a map gets a different design, drawn from a shuffled deck of the three
+  const deck = [0, 1, 2]; shuffle(deck, rand);
+  map.castles.forEach((k, i) => { k.style = deck[i % 3]; });
+  map.exits.forEach((g, i) => { g.style = map.castles[i] && map.castles[i].style === 2 ? 1 : 0; });   // a Chinese palace gets a paifang gate
   map.castle = map.castles[0];
 
   makeRivers(rand);

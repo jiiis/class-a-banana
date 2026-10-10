@@ -455,6 +455,7 @@ function drawGate(c, g) {
     c.strokeStyle = "rgba(70,45,20,0.45)"; c.lineWidth = 4; c.lineCap = "round"; c.lineJoin = "round";
     c.beginPath(); c.moveTo(cx - ax * 7 + px * 14, cy - ay * 7 + py * 14); c.lineTo(cx + ax * 7, cy + ay * 7); c.lineTo(cx - ax * 7 - px * 14, cy - ay * 7 - py * 14); c.stroke();
   }
+  if (g.style === 1) return drawPaifang(c, g);
   for (const p of gatePillars(g)) {
     castShadow(c, p.x, p.y + 4, 9, 30);
     const grad = c.createLinearGradient(p.x - 9, 0, p.x + 9, 0);
@@ -464,6 +465,94 @@ function drawGate(c, g) {
     for (const xx of [p.x - 9, p.x - 2, p.x + 5]) rect(c, xx, p.y - 40, 4, 7, "#a8a49c", "#3a3733", 1);   // three slim merlons, flush with the pillar
     rect(c, p.x - 1.5, p.y - 46, 3, 8, "#4e342e");                                                       // torch bracket
   }
+}
+
+// A Chinese paifang (牌坊): red lacquered posts on stone bases with green glazed roofs whose eaves sweep up at
+// the corners, gold trim, and (when the posts stand side by side) a crossbeam with a roof over the road.
+function drawPaifang(c, g) {
+  const [a, b] = gatePillars(g);
+  const across = Math.abs(a.y - b.y) < 1;                                 // posts left and right of the road: one roof spans them
+  const roof = (cx, cy, hw) => {                                           // an up-swept tiled roof centred at (cx, cy) with half-width hw
+    c.fillStyle = "#2e7d32"; c.beginPath();
+    c.moveTo(cx - hw - 8, cy - 2); c.quadraticCurveTo(cx - hw - 2, cy + 3, cx - hw + 6, cy + 3);
+    c.lineTo(cx + hw - 6, cy + 3); c.quadraticCurveTo(cx + hw + 2, cy + 3, cx + hw + 8, cy - 2);
+    c.quadraticCurveTo(cx + hw * 0.5, cy - 9, cx, cy - 10); c.quadraticCurveTo(cx - hw * 0.5, cy - 9, cx - hw - 8, cy - 2);
+    c.closePath(); c.fill();
+    c.strokeStyle = "#1b5e20"; c.lineWidth = 1; c.stroke();
+    for (let x = cx - hw + 4; x < cx + hw - 2; x += 5) line(c, x, cy - 6 + Math.abs(x - cx) / hw * 3, x, cy + 2, "rgba(27,94,32,0.6)", 1);   // tile ridges
+    line(c, cx - hw - 6, cy - 1, cx + hw + 6, cy - 1, "#c9a227", 1.2);    // gold eave trim
+    const fg = c.createRadialGradient(cx - 0.6, cy - 10.6, 0.3, cx, cy - 10, 2.4);
+    fg.addColorStop(0, "#fff8dc"); fg.addColorStop(0.6, "#ffd54f"); fg.addColorStop(1, "#c9a227");
+    circle(c, cx, cy - 10, 2.4, fg, "#b8902a", 0.6);                     // bright ridge finial (glows live in draw.js)
+  };
+  for (const p of [a, b]) {
+    castShadow(c, p.x, p.y + 4, 8, 28);
+    rect(c, p.x - 7, p.y - 2, 14, 7, "#8d8d8d", "#4e4e4e", 1);           // stone base
+    const grad = c.createLinearGradient(p.x - 5, 0, p.x + 5, 0);
+    grad.addColorStop(0, "#c4544a"); grad.addColorStop(0.5, "#a8382f"); grad.addColorStop(1, "#7a2420");
+    rect(c, p.x - 5, p.y - 40, 10, 38, grad, "#5a1a16", 1);              // red lacquered post
+    rect(c, p.x - 6, p.y - 44, 12, 5, "#c9a227", "#8a6a00", 0.8);          // gold cap
+    if (!across) roof(p.x, p.y - 48, 9);                                  // a little roof on each post
+  }
+  if (across) {
+    const lx = Math.min(a.x, b.x), rx = Math.max(a.x, b.x), cy = a.y;
+    rect(c, lx - 4, cy - 50, rx - lx + 8, 7, "#a8382f", "#5a1a16", 1);     // crossbeam
+    for (let x = lx + 2; x < rx - 2; x += 8) rect(c, x, cy - 49, 3, 5, "#ffd54f");   // gold studs
+    rect(c, (lx + rx) / 2 - 13, cy - 52, 26, 10, "#1a237e", "#0d1545", 1);   // name board
+    line(c, (lx + rx) / 2 - 9, cy - 47, (lx + rx) / 2 + 9, cy - 47, "#ffd54f", 1.4);
+    roof((lx + rx) / 2, cy - 56, (rx - lx) / 2 + 6);
+  }
+}
+
+
+// The Temple of Heaven (祈年殿): a round hall on a wide three-tier white marble terrace with balustrades,
+// soft vermilion walls with gold-framed doors, and three conical roofs of deep-blue glazed tiles whose
+// eaves flare out at the bottom, crowned by a gold finial.
+function drawPagoda(c, x, y) {
+  const red = "#a8382f", redDark = "#7a2420", redDeep = "#8e2f29", gold = "#e9c55a", goldDark = "#b8902a";
+  const blue = "#2d4e9e", blueDark = "#1c3470", blueLight = "#4a6fc2";
+  shadow(c, x, y + 6, 60, 11);
+  // Marble terrace: three wide round tiers with balustrades, a stair up the middle
+  for (const [hw, hh, ty] of [[56, 8, y + 3], [46, 7, y - 4], [36, 6, y - 10]]) {
+    ellipse(c, x, ty, hw, hh, "#e6e2da", "#b8b2a6", 1);
+    rect(c, x - hw, ty - 6, hw * 2, 6, "#efece5", "#b8b2a6", 0.8);
+    ellipse(c, x, ty - 6, hw, hh, "#f5f2ec", "#b8b2a6", 1);
+    for (let i = -hw + 4; i <= hw - 4; i += 6) rect(c, x + i - 0.8, ty - 12, 1.6, 6, "#d9d4ca");         // balustrade posts
+    line(c, x - hw + 3, ty - 12, x + hw - 3, ty - 12, "#c9c3b6", 1.4);                                  // rail
+  }
+  rect(c, x - 6, y - 2, 12, 12, "#d9d4ca", "#b8b2a6", 0.8); for (let s = 0; s < 4; s++) line(c, x - 6, y + s * 3, x + 6, y + s * 3, "#b8b2a6", 0.8);
+  // A conical roof: flaring eaves at the base, straight-ish sides rising to a ring at the top
+  const cone = (base, hw, top, topHw) => {
+    const g = c.createLinearGradient(x - hw, 0, x + hw, 0);
+    g.addColorStop(0, blueLight); g.addColorStop(0.5, blue); g.addColorStop(1, blueDark);
+    c.fillStyle = g; c.beginPath();
+    c.moveTo(x - hw - 5, base - 2); c.quadraticCurveTo(x - hw + 2, base + 3, x - hw + 8, base + 3);
+    c.lineTo(x + hw - 8, base + 3); c.quadraticCurveTo(x + hw - 2, base + 3, x + hw + 5, base - 2);
+    c.quadraticCurveTo(x + hw * 0.55, base - (base - top) * 0.55, x + topHw, top);
+    c.lineTo(x - topHw, top);
+    c.quadraticCurveTo(x - hw * 0.55, base - (base - top) * 0.55, x - hw - 5, base - 2);
+    c.closePath(); c.fill(); c.strokeStyle = blueDark; c.lineWidth = 1; c.stroke();
+    for (let k = -3; k <= 3; k++) { const t = k / 3.6; line(c, x + t * topHw, top + 1, x + t * hw * 0.92, base + 1, "rgba(28,52,112,0.45)", 1); }   // tile seams fanning down
+    line(c, x - hw - 3, base + 1, x + hw + 3, base + 1, goldDark, 1.2);                                  // gold eave
+    ellipse(c, x, top, topHw, 1.6, goldDark);                                                             // gold ring at the top
+  };
+  // Lower hall: a wide red drum with doors
+  rect(c, x - 38, y - 34, 76, 20, red, redDark, 1.2);
+  ellipse(c, x, y - 14, 38, 5, redDeep, redDark, 1);
+  line(c, x - 38, y - 31, x + 38, y - 31, goldDark, 1.4);
+  for (const dx of [-27, -9, 9, 27]) { rect(c, x + dx - 4, y - 29, 8, 13, "#5a1a16", gold, 0.9); line(c, x + dx, y - 29, x + dx, y - 16, gold, 0.7); line(c, x + dx - 4, y - 23, x + dx + 4, y - 23, gold, 0.7); }
+  cone(y - 36, 50, y - 50, 32);
+  // Middle drum and roof
+  rect(c, x - 28, y - 60, 56, 10, red, redDark, 1.2); line(c, x - 28, y - 57, x + 28, y - 57, goldDark, 1.2);
+  for (const dx of [-15, 0, 15]) rect(c, x + dx - 2.5, y - 56, 5, 6, "#5a1a16", gold, 0.6);
+  cone(y - 62, 40, y - 75, 21);
+  // Upper drum and the top cone
+  rect(c, x - 18, y - 83, 36, 8, red, redDark, 1.2); line(c, x - 18, y - 80, x + 18, y - 80, goldDark, 1);
+  cone(y - 85, 28, y - 100, 4);
+  const fg = c.createRadialGradient(x - 1, y - 104, 0.5, x, y - 103, 4);
+  fg.addColorStop(0, "#fff8dc"); fg.addColorStop(0.5, "#ffd54f"); fg.addColorStop(1, "#c9a227");
+  circle(c, x, y - 103, 3.6, fg, "#b8902a", 0.8);                                                        // bright gold finial (it glints live in draw.js)
+  circle(c, x - 1.2, y - 104.2, 1, "rgba(255,255,255,0.9)");                                                         // gold finial (the banner pole stands on it)
 }
 
 export function drawSign(c, x, y, face = { dc: 1, dr: 0 }) {
@@ -485,9 +574,11 @@ export function drawSign(c, x, y, face = { dc: 1, dr: 0 }) {
 export const CASTLE_STYLES = [
   { light: "#b0aca4", dark: "#6e6a63", keepLight: "#a8a49c", keepDark: "#66625b", gateLight: "#9e9a92", gateDark: "#605c56", towerLight: "#b8b4ac", towerMid: "#8f8b84", towerDark: "#5a5650", roof: "#3f4a56", roofEdge: "#1f262d", roofShine: "rgba(140,160,180,0.35)", mortar: "rgba(40,36,32,0.35)", outline: "#3a3733", banner: "#1565c0", square: false },
   { light: "#e0c9a0", dark: "#a8865a", keepLight: "#d9c094", keepDark: "#9c7a4e", gateLight: "#d4b98a", gateDark: "#93714a", towerLight: "#e6d0a8", towerMid: "#c2a06e", towerDark: "#8a6a44", roof: "#b5533a", roofEdge: "#6e2f1f", roofShine: "rgba(255,200,160,0.35)", mortar: "rgba(90,60,30,0.3)", outline: "#5a4023", banner: "#2e7d32", square: true },
+  { banner: "#e53935", pagoda: true },                                 // Chinese palace: drawn by drawPagoda
 ];
 function drawCastle(c, x, y, styleIndex = 0) {
   const S = CASTLE_STYLES[styleIndex] || CASTLE_STYLES[0];
+  if (S.pagoda) return drawPagoda(c, x, y);
   const stone = (x0, y0, w, h, light = S.light, dark = S.dark) => {
     const g = c.createLinearGradient(x0, 0, x0 + w, 0);
     g.addColorStop(0, light); g.addColorStop(1, dark);

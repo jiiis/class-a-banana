@@ -1,4 +1,4 @@
-import { ctx, circle, line, poly } from "./gfx.js";
+import { ctx, circle, ellipse, rect, line, poly } from "./gfx.js";
 import { state } from "../state.js";
 import { map } from "../map.js";
 import { SPOT_RADIUS } from "../config.js";
@@ -144,6 +144,22 @@ export function draw() {
   // Exit gates: torches burn on the pillars and a chain with the castle's banner hangs across the road
   map.exits.forEach((g, i) => {
     const [a, b] = gatePillars(g), T = state.time * 9 + i;
+    if (g.style === 1) {                                                    // paifang: red lanterns swing from the posts with a warm glow
+      // The gold finials on the roofs catch the sun with a soft pulsing glow
+      const tw = 0.5 + 0.5 * Math.sin(state.time * 2.2 + i + 1);
+      const finials = Math.abs(a.y - b.y) < 1 ? [{ x: (a.x + b.x) / 2, y: a.y - 66 }] : [{ x: a.x, y: a.y - 58 }, { x: b.x, y: b.y - 58 }];
+      for (const f of finials) { ctx.globalAlpha = 0.12 + tw * 0.18; circle(ctx, f.x, f.y, 4 + tw * 3, "rgba(255,225,130,0.7)"); ctx.globalAlpha = 0.3 + tw * 0.5; circle(ctx, f.x - 0.5, f.y - 0.5, 0.9, "#fffbe6"); ctx.globalAlpha = 1; }
+      for (const p of [a, b]) {
+        const sway = Math.sin(state.time * 1.6 + p.x) * 2.5, lx = p.x + 7 + sway, ly = p.y - 36;
+        line(ctx, p.x + 5, p.y - 42, lx, ly - 6, "#5d0000", 1);
+        ctx.globalAlpha = 0.3; circle(ctx, lx, ly, 13, "rgba(255,120,60,0.6)"); ctx.globalAlpha = 1;
+        ellipse(ctx, lx, ly, 4, 5.5, "#c84a3f", "#7a2420", 0.8);
+        line(ctx, lx - 3, ly - 2, lx + 3, ly - 2, "rgba(255,255,255,0.25)", 1); line(ctx, lx - 3, ly + 2, lx + 3, ly + 2, "rgba(0,0,0,0.25)", 1);
+        rect(ctx, lx - 2, ly - 7, 4, 1.6, "#ffd54f"); rect(ctx, lx - 2, ly + 5.4, 4, 1.6, "#ffd54f");
+        line(ctx, lx, ly + 7, lx + sway * 0.3, ly + 12, "#ffd54f", 1);      // tassel
+      }
+      return;
+    }
     const style = CASTLE_STYLES[(map.castles[i] || map.castles[0]).style];
     ctx.strokeStyle = "#4e342e"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(a.x, a.y - 44); ctx.quadraticCurveTo((a.x + b.x) / 2, (a.y + b.y) / 2 - 36, b.x, b.y - 44); ctx.stroke();
     const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2 - 40;
@@ -155,7 +171,25 @@ export function draw() {
       ctx.globalAlpha = 0.25; circle(ctx, p.x, p.y - 50, 14, "rgba(255,180,60,0.6)"); ctx.globalAlpha = 1;
     }
   });
-  map.castles.forEach((k, i) => flag(k.x, k.y - (k.style === 1 ? 86 + 22 : 92) * k.scale, 22 * k.scale, CASTLE_STYLES[k.style].banner, 1 + i));   // the sandstone keep's pole stands on its roof peak
+  map.castles.forEach((k, i) => {
+    if (k.style === 2) {                                                    // the temple flies no flag: lanterns sway gently by the doors
+      // The gold finial catches the sun: a soft glow and a four-point glint that pulses
+      const fx = k.x, fy = k.y - 103 * k.scale, tw = 0.5 + 0.5 * Math.sin(state.time * 2.2 + i);
+      ctx.globalAlpha = 0.12 + tw * 0.18; circle(ctx, fx, fy, (5 + tw * 3) * k.scale, "rgba(255,225,130,0.7)"); ctx.globalAlpha = 1;
+      const r = (2 + tw * 3.5) * k.scale;
+      ctx.strokeStyle = `rgba(255,250,220,${0.25 + tw * 0.45})`; ctx.lineWidth = 1; ctx.beginPath();
+      ctx.moveTo(fx - r, fy); ctx.lineTo(fx + r, fy); ctx.moveTo(fx, fy - r); ctx.lineTo(fx, fy + r); ctx.stroke();
+      for (const side of [-1, 1]) {
+        const sway = Math.sin(state.time * 1.4 + i + side) * 1.6 * k.scale, lx = k.x + side * 45 * k.scale + sway, ly = k.y - 23 * k.scale;
+        line(ctx, k.x + side * 45 * k.scale, ly - 8 * k.scale, lx, ly - 4 * k.scale, "#5a1a16", 1);
+        ctx.globalAlpha = 0.28; circle(ctx, lx, ly, 9 * k.scale, "rgba(255,120,60,0.6)"); ctx.globalAlpha = 1;
+        ellipse(ctx, lx, ly, 2.6 * k.scale, 3.4 * k.scale, "#c84a3f", "#7a2420", 0.8);
+        rect(ctx, lx - 1.3 * k.scale, ly - 4.4 * k.scale, 2.6 * k.scale, 1, "#e9c55a"); rect(ctx, lx - 1.3 * k.scale, ly + 3.4 * k.scale, 2.6 * k.scale, 1, "#e9c55a");
+      }
+      return;
+    }
+    flag(k.x, k.y - (k.style === 1 ? 86 + 22 : 92) * k.scale, 22 * k.scale, CASTLE_STYLES[k.style].banner, 1 + i);   // the sandstone keep's pole stands on its roof peak
+  });
 
   // Scorch marks from cannonballs slowly fade away
   for (const sc of state.scorches) {
