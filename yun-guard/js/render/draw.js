@@ -3,7 +3,7 @@ import { state } from "../state.js";
 import { map } from "../map.js";
 import { SPOT_RADIUS } from "../config.js";
 import { towerRange, abilityDef } from "../towers.js";
-import { buildBackground, drawSign, CASTLE_STYLES, gatePillars, lairStakes } from "./background.js";
+import { buildBackground, drawSign, CASTLE_STYLES, gatePillars, lairStakes, drawDecoItem, drawCastleAt, drawGateStructure, gateAnchorY, drawLairStructure, lairAnchorY } from "./background.js";
 import { drawTower, flag } from "./towers.js";
 import { drawEnemy, drawCorpse } from "./creatures.js";
 import { drawSoldier } from "./soldiers.js";
@@ -144,6 +144,13 @@ export function draw() {
   // Exit gates: torches burn on the pillars and a chain with the castle's banner hangs across the road
   map.exits.forEach((g, i) => {
     const [a, b] = gatePillars(g), T = state.time * 9 + i;
+    if (g.style === 2) {                                                    // Moorish gate: the gold tips of the domes catch the sun
+      const tw = 0.5 + 0.5 * Math.sin(state.time * 2.2 + i + 2);
+      const tips = [{ x: a.x, y: a.y - 39 - 7 * 2.25 }, { x: b.x, y: b.y - 39 - 7 * 2.25 }];
+      if (Math.abs(a.y - b.y) < 1) tips.push({ x: (a.x + b.x) / 2, y: a.y - 30 - ((Math.abs(a.x - b.x)) / 2 - 2) - 7 - 6 * 2.25 });
+      for (const f of tips) { ctx.globalAlpha = 0.12 + tw * 0.18; circle(ctx, f.x, f.y, 4 + tw * 3, "rgba(255,225,130,0.7)"); ctx.globalAlpha = 0.3 + tw * 0.5; circle(ctx, f.x - 0.4, f.y - 0.4, 0.8, "#fffbe6"); ctx.globalAlpha = 1; }
+      return;
+    }
     if (g.style === 1) {                                                    // paifang: red lanterns swing from the posts with a warm glow
       // The gold finials on the roofs catch the sun with a soft pulsing glow
       const tw = 0.5 + 0.5 * Math.sin(state.time * 2.2 + i + 1);
@@ -188,7 +195,7 @@ export function draw() {
       }
       return;
     }
-    flag(k.x, k.y - (k.style === 1 ? 86 + 22 : 92) * k.scale, 22 * k.scale, CASTLE_STYLES[k.style].banner, 1 + i);   // the sandstone keep's pole stands on its roof peak
+    flag(k.x, k.y - (k.style === 1 ? 104 + 22 : 92) * k.scale, 22 * k.scale, CASTLE_STYLES[k.style].banner, 1 + i);   // the palace pole stands on its great dome
   });
 
   // Scorch marks from cannonballs slowly fade away
@@ -222,6 +229,13 @@ export function draw() {
     circle(ctx, focus.x, focus.y, r, "rgba(255,255,255,0.12)", "rgba(255,255,255,0.6)", 2);
     if (focus.rally) drawRallyFlag(focus.rally, !!state.rallyFor);
   }
+
+  // Droppings left by the animals, fading away
+  for (const p of state.poops) {
+    ctx.globalAlpha = Math.min(1, p.life / 6) * 0.9;
+    for (let i = 0; i < p.n; i++) ellipse(ctx, p.x + Math.sin(p.seed + i * 2.1) * p.size * 1.6, p.y + Math.cos(p.seed + i * 1.7) * p.size * 0.8, p.size, p.size * 0.7, "#4e342e", "#3e2723", 0.5);
+  }
+  ctx.globalAlpha = 1;
 
   // Napalm: patches of burning ground
   for (const f of state.fires) {
@@ -311,6 +325,10 @@ export function draw() {
   // Towers, soldiers, monsters and animals, sorted so things lower on screen are drawn in front.
   // A tower's "feet" are the bottom of its stone pad, so monsters walking above it go behind it.
   const actors = [];
+  for (const d of map.deco) actors.push({ y: d.y, draw: () => drawDecoItem(ctx, d) });                 // trees, bushes, rocks, flowers...
+  for (const k of map.castles) actors.push({ y: k.y + 8 * k.scale, draw: () => drawCastleAt(ctx, k) });
+  for (const g of map.exits) actors.push({ y: gateAnchorY(g), draw: () => drawGateStructure(ctx, g) });
+  for (const e of map.entries) actors.push({ y: lairAnchorY(e), draw: () => drawLairStructure(ctx, e) });
   for (const e of map.entries) actors.push({ y: e.y + 12, draw: () => { drawSign(ctx, e.x, e.y, e.face); flag(e.x, e.y - 40, 20, "#c62828", 2 + e.y); } });
   for (const t of state.towers) actors.push({ y: t.y + 12, draw: () => {
     drawTower(t);

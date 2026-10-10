@@ -120,7 +120,7 @@ export function generateMap(seed) {
   // Every exit on a map gets a different design, drawn from a shuffled deck of the three
   const deck = [0, 1, 2]; shuffle(deck, rand);
   map.castles.forEach((k, i) => { k.style = deck[i % 3]; });
-  map.exits.forEach((g, i) => { g.style = map.castles[i] && map.castles[i].style === 2 ? 1 : 0; });   // a Chinese palace gets a paifang gate
+  map.exits.forEach((g, i) => { const cs = map.castles[i] ? map.castles[i].style : 0; g.style = cs === 2 ? 1 : cs === 1 ? 2 : 0; });   // the gate matches its home: stone, Moorish arch, or paifang
   map.castle = map.castles[0];
 
   makeRivers(rand);
@@ -577,6 +577,7 @@ function placeCritters(rand) {
     if (!clear(p, { road: 70, spots: 55, deco: 32, critters: 60, river: 50 })) continue;
     let roll = rand(), type = ANIMAL_ODDS[0][0];
     for (const [name, odds] of ANIMAL_ODDS) { roll -= odds; if (roll <= 0) { type = name; break; } }
+    if (type === "cow" && out.some((a) => a.type === "cow")) type = "sheep";   // one cow is plenty
     out.push({ type, x: p.x, y: p.y });
   }
   return out;

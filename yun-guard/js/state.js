@@ -31,6 +31,7 @@ export const state = {
   hoverCritter: null,// animal under the mouse while a hero is selected
   weather: null,     // rain / snow (see weather.js)
   fish: [],          // fish mid-leap out of a river
+  poops: [],         // little droppings animals leave behind (they fade away)
   over: false,
   paused: false,     // frozen by the pause button (P or Space)
 };

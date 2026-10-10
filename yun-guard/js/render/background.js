@@ -50,23 +50,10 @@ export function buildBackground() {
   drawRoad(c, rand, map.paths);
 
   for (const b of map.bridges) drawBridge(c, b);
-  for (const g of map.exits) drawGate(c, g);
-  for (const e of map.entries) drawLair(c, e, rand);
-
-  // Scenery, drawn back to front so nearer things overlap farther ones
-  for (const d of [...map.deco].sort((a, b) => a.y - b.y)) {
-    const s = d.s || 1;
-    castShadow(c, d.x, d.y, d.type === "tree" ? 16 * s : d.type === "flower" || d.type === "mushroom" ? 0 : 9 * s, d.type === "tree" ? 22 * s : 6);
-    DRAW_DECO[d.type](c, d.x, d.y, s, d.variant || 0, rng(d.seed || 1));
-  }
-  for (const e of map.entries) castShadow(c, e.x, e.y + 10, 8, 30);
-  for (const k of map.castles) {
-    castShadow(c, k.x, k.y, 50 * k.scale, 90 * k.scale);
-    c.save(); c.translate(k.x, k.y); c.scale(k.scale, k.scale);
-    drawCastle(c, 0, 0, k.style);
-    c.restore();
-  }
-  // (the signpost itself is drawn each frame in draw.js so monsters pass behind it correctly)
+  for (const g of map.exits) drawGateGround(c, g);                // chevrons on the road
+  for (const e of map.entries) drawLairGround(c, e, rand);         // scorched earth and bones
+  // Everything that stands up (scenery, gates, stakes, buildings, signposts) is drawn each frame in draw.js,
+  // sorted by depth with the monsters, so nearer things always overlap farther ones.
 
   // Vignette: the corners fall away into shade
   const v = c.createRadialGradient(W * 0.5, H * 0.45, H * 0.45, W * 0.5, H * 0.5, H * 0.95);
@@ -316,6 +303,18 @@ function drawBridge(c, b) {
 
 // ---------- Scenery ----------
 // Every function gets a size, a variant (0-2) and its own random generator, so no two pieces look alike.
+export function drawDecoItem(c, d) {
+  const s = d.s || 1;
+  castShadow(c, d.x, d.y, d.type === "tree" ? 16 * s : d.type === "flower" || d.type === "mushroom" ? 0 : 9 * s, d.type === "tree" ? 22 * s : 6);
+  DRAW_DECO[d.type](c, d.x, d.y, s, d.variant || 0, rng(d.seed || 1));
+}
+export function drawCastleAt(c, k) {
+  castShadow(c, k.x, k.y, 50 * k.scale, 90 * k.scale);
+  c.save(); c.translate(k.x, k.y); c.scale(k.scale, k.scale);
+  drawCastle(c, 0, 0, k.style);
+  c.restore();
+}
+
 const DRAW_DECO = {
   tree(c, x, y, s, v, r) {
     if (v === 1) s *= 1.35;                                                  // pines grow tall
@@ -411,7 +410,7 @@ export function lairStakes(e) {
   const px = -e.inn.y, py = e.inn.x;
   return [{ x: e.rx + px * GATE_SPAN, y: e.ry + py * GATE_SPAN }, { x: e.rx - px * GATE_SPAN, y: e.ry - py * GATE_SPAN }];
 }
-function drawLair(c, e, rand) {
+function drawLairGround(c, e, rand) {
   const ax = e.inn.x, ay = e.inn.y, px = -ay, py = ax;
   // Scorched, trampled earth where the monsters pour in
   const g = c.createRadialGradient(e.rx - ax * 10, e.ry - ay * 10, 4, e.rx - ax * 10, e.ry - ay * 10, 60);
@@ -422,6 +421,15 @@ function drawLair(c, e, rand) {
     line(c, bx - Math.cos(a) * l, by - Math.sin(a) * l, bx + Math.cos(a) * l, by + Math.sin(a) * l, "#e0e0e0", 2);
     circle(c, bx - Math.cos(a) * l, by - Math.sin(a) * l, 1.6, "#e0e0e0"); circle(c, bx + Math.cos(a) * l, by + Math.sin(a) * l, 1.6, "#e0e0e0");
   }
+}
+// The lair's standing parts: skull stakes and the dead tree (drawn live, depth-sorted)
+export function lairAnchorY(e) { const [s1, s2] = lairStakes(e); return Math.max(s1.y, s2.y, lairTreePos(e).y) + 2; }
+function lairTreePos(e) {
+  const ax = e.inn.x, ay = e.inn.y, px = -ay, py = ax;
+  const side = (e.x - e.rx) * px + (e.y - e.ry) * py > 0 ? -1 : 1;
+  return { x: e.rx + px * side * (GATE_SPAN + 16) + ax * 6, y: e.ry + py * side * (GATE_SPAN + 16) + ay * 6 };
+}
+export function drawLairStructure(c, e) {
   for (const s of lairStakes(e)) {                                              // skull stakes
     castShadow(c, s.x, s.y + 2, 5, 22);
     line(c, s.x, s.y + 4, s.x, s.y - 30, "#4e342e", 4); line(c, s.x - 1, s.y + 4, s.x - 1, s.y - 30, "#6d4c41", 1.5);
@@ -431,8 +439,7 @@ function drawLair(c, e, rand) {
     line(c, s.x - 2.5, s.y - 31, s.x + 2.5, s.y - 31, "#9e9e9e", 1); for (let k = -1; k <= 1; k++) line(c, s.x + k * 1.6, s.y - 32, s.x + k * 1.6, s.y - 30, "#9e9e9e", 1);
   }
   // A dead tree leaning over the road, on the signpost's far side
-  const side = (e.x - e.rx) * px + (e.y - e.ry) * py > 0 ? -1 : 1;
-  const tx = e.rx + px * side * (GATE_SPAN + 16) + ax * 6, ty = e.ry + py * side * (GATE_SPAN + 16) + ay * 6;
+  const { x: tx, y: ty } = lairTreePos(e);
   castShadow(c, tx, ty, 8, 26);
   line(c, tx, ty, tx + 3, ty - 34, "#3e2723", 6);
   line(c, tx + 1, ty - 18, tx - 14, ty - 32, "#3e2723", 3.5); line(c, tx + 2, ty - 26, tx + 16, ty - 40, "#3e2723", 3);
@@ -447,7 +454,7 @@ export function gatePillars(g) {
   const px = -g.out.y, py = g.out.x;                                           // across the road
   return [{ x: g.x + px * GATE_SPAN, y: g.y + py * GATE_SPAN }, { x: g.x - px * GATE_SPAN, y: g.y - py * GATE_SPAN }];
 }
-function drawGate(c, g) {
+function drawGateGround(c, g) {
   // Chevrons worn into the dirt, pointing the way out
   const ax = g.out.x, ay = g.out.y, px = -ay, py = ax;
   for (let k = -1; k <= 1; k++) {
@@ -455,7 +462,11 @@ function drawGate(c, g) {
     c.strokeStyle = "rgba(70,45,20,0.45)"; c.lineWidth = 4; c.lineCap = "round"; c.lineJoin = "round";
     c.beginPath(); c.moveTo(cx - ax * 7 + px * 14, cy - ay * 7 + py * 14); c.lineTo(cx + ax * 7, cy + ay * 7); c.lineTo(cx - ax * 7 - px * 14, cy - ay * 7 - py * 14); c.stroke();
   }
+}
+export function gateAnchorY(g) { const [a, b] = gatePillars(g); return Math.max(a.y, b.y) + 6; }
+export function drawGateStructure(c, g) {
   if (g.style === 1) return drawPaifang(c, g);
+  if (g.style === 2) return drawMoorishGate(c, g);
   for (const p of gatePillars(g)) {
     castShadow(c, p.x, p.y + 4, 9, 30);
     const grad = c.createLinearGradient(p.x - 9, 0, p.x + 9, 0);
@@ -505,6 +516,93 @@ function drawPaifang(c, g) {
   }
 }
 
+
+
+
+// A Moorish gate for the desert palace: cream posts with turquoise tile bands and onion-dome caps tipped
+// with gold; when the posts stand side by side a horseshoe arch spans the road between them.
+function drawMoorishGate(c, g) {
+  const [a, b] = gatePillars(g);
+  const across = Math.abs(a.y - b.y) < 1;
+  const wall = "#f1e6d0", wallDark = "#cdbb9a", edge = "#8d7a58", teal = "#2a9d8f", tealDark = "#1b6f66", tealLight = "#5fc4b6", gold = "#e9c55a", goldDark = "#b8902a";
+  const dome = (cx, cy, r) => {
+    const gr = c.createLinearGradient(cx - r, 0, cx + r, 0); gr.addColorStop(0, tealLight); gr.addColorStop(0.55, teal); gr.addColorStop(1, tealDark);
+    c.fillStyle = gr; c.beginPath();
+    c.moveTo(cx - r, cy); c.quadraticCurveTo(cx - r * 1.05, cy - r * 1.1, cx - r * 0.35, cy - r * 1.45);
+    c.quadraticCurveTo(cx, cy - r * 1.7, cx, cy - r * 1.95); c.quadraticCurveTo(cx, cy - r * 1.7, cx + r * 0.35, cy - r * 1.45);
+    c.quadraticCurveTo(cx + r * 1.05, cy - r * 1.1, cx + r, cy); c.closePath(); c.fill(); c.strokeStyle = tealDark; c.lineWidth = 1; c.stroke();
+    line(c, cx - r, cy, cx + r, cy, goldDark, 1.2);
+    line(c, cx, cy - r * 1.95, cx, cy - r * 2.2, goldDark, 1.4); circle(c, cx, cy - r * 2.25, 1.5, gold, goldDark, 0.6);
+  };
+  if (across) {                                                            // horseshoe arch over the road
+    const lx = Math.min(a.x, b.x), rx = Math.max(a.x, b.x), cx = (lx + rx) / 2, cy = a.y - 30, r = (rx - lx) / 2 - 2;
+    c.fillStyle = wall; c.beginPath(); c.arc(cx, cy, r + 7, Math.PI * 1.05, Math.PI * 1.95); c.arc(cx, cy, r, Math.PI * 1.95, Math.PI * 1.05, true); c.closePath(); c.fill();
+    c.strokeStyle = edge; c.lineWidth = 1.2; c.stroke();
+    c.strokeStyle = teal; c.lineWidth = 2; c.beginPath(); c.arc(cx, cy, r + 3.5, Math.PI * 1.08, Math.PI * 1.92); c.stroke();   // tile band along the arch
+    for (let t = 1.1; t < 1.92; t += 0.12) { const px = cx + Math.cos(t * Math.PI) * (r + 3.5), py = cy + Math.sin(t * Math.PI) * (r + 3.5); circle(c, px, py, 0.9, gold); }
+    dome(cx, cy - r - 7, 6);                                                // a small dome crowns the arch
+  }
+  for (const p of [a, b]) {
+    castShadow(c, p.x, p.y + 4, 8, 28);
+    const gr = c.createLinearGradient(p.x - 7, 0, p.x + 7, 0); gr.addColorStop(0, "#f6ecd8"); gr.addColorStop(1, wallDark);
+    rect(c, p.x - 7, p.y - 36, 14, 40, gr, edge, 1.2);                       // post
+    rect(c, p.x - 9, p.y + 2, 18, 4, wall, edge, 1);                          // base
+    line(c, p.x - 7, p.y - 26, p.x + 7, p.y - 26, teal, 1.6); line(c, p.x - 7, p.y - 12, p.x + 7, p.y - 12, teal, 1.6);   // tile bands
+    for (const yy of [-26, -12]) for (const dx of [-4, 0, 4]) rect(c, p.x + dx - 0.8, p.y + yy - 0.8, 1.6, 1.6, gold);
+    c.fillStyle = "#3e2a1a"; c.beginPath(); c.moveTo(p.x - 2.5, p.y - 14); c.lineTo(p.x - 2.5, p.y - 20); c.arc(p.x, p.y - 20, 2.5, Math.PI, 0); c.lineTo(p.x + 2.5, p.y - 14); c.closePath(); c.fill();   // little arched window
+    rect(c, p.x - 8, p.y - 39, 16, 3, wall, edge, 1);                        // cap ledge
+    dome(p.x, p.y - 39, 7);
+  }
+}
+
+// A desert palace: cream walls with a scalloped parapet and horseshoe arches, two slender minaret towers with
+// little balconies, and turquoise onion domes tipped with gold. The big central dome carries the banner.
+function drawPalace(c, x, y) {
+  const wall = "#f1e6d0", wallDark = "#cdbb9a", edge = "#8d7a58", teal = "#2a9d8f", tealDark = "#1b6f66", tealLight = "#5fc4b6", gold = "#e9c55a", goldDark = "#b8902a";
+  const dome = (cx, cy, r) => {                                            // an onion dome
+    const g = c.createLinearGradient(cx - r, 0, cx + r, 0);
+    g.addColorStop(0, tealLight); g.addColorStop(0.55, teal); g.addColorStop(1, tealDark);
+    c.fillStyle = g; c.beginPath();
+    c.moveTo(cx - r, cy); c.quadraticCurveTo(cx - r * 1.05, cy - r * 1.1, cx - r * 0.35, cy - r * 1.45);
+    c.quadraticCurveTo(cx, cy - r * 1.7, cx, cy - r * 1.95); c.quadraticCurveTo(cx, cy - r * 1.7, cx + r * 0.35, cy - r * 1.45);
+    c.quadraticCurveTo(cx + r * 1.05, cy - r * 1.1, cx + r, cy); c.closePath(); c.fill();
+    c.strokeStyle = tealDark; c.lineWidth = 1; c.stroke();
+    for (let k = -2; k <= 2; k++) line(c, cx + k * r * 0.3, cy - 1, cx + k * r * 0.12, cy - r * 1.4, "rgba(27,111,102,0.45)", 1);   // ribs
+    line(c, cx - r, cy, cx + r, cy, goldDark, 1.2);
+    line(c, cx, cy - r * 1.95, cx, cy - r * 2.2, goldDark, 1.5); circle(c, cx, cy - r * 2.25, 1.6, gold, goldDark, 0.6);   // gold tip
+  };
+  const arch = (ax, ay, w, h) => {                                        // horseshoe arch doorway
+    c.fillStyle = "#3e2a1a"; c.beginPath(); c.moveTo(ax - w / 2, ay); c.lineTo(ax - w / 2, ay - h + w / 2);
+    c.arc(ax, ay - h + w / 2, w / 2, Math.PI, 0); c.lineTo(ax + w / 2, ay); c.closePath(); c.fill();
+    c.strokeStyle = goldDark; c.lineWidth = 1.2; c.stroke();
+  };
+  shadow(c, x, y + 6, 58, 11);
+  // Main block with a scalloped parapet
+  rect(c, x - 44, y - 36, 88, 40, wall, edge, 1.2);
+  const lg = c.createLinearGradient(x - 44, 0, x + 44, 0); lg.addColorStop(0, "rgba(255,255,255,0.25)"); lg.addColorStop(1, "rgba(80,60,30,0.2)");
+  rect(c, x - 44, y - 36, 88, 40, lg);
+  for (let sx = x - 42; sx <= x + 42; sx += 8) { c.fillStyle = wall; c.beginPath(); c.arc(sx, y - 36, 4, Math.PI, 0); c.fill(); c.strokeStyle = edge; c.lineWidth = 1; c.stroke(); }
+  line(c, x - 44, y - 28, x + 44, y - 28, teal, 2);                       // tile band
+  for (let sx = x - 40; sx <= x + 40; sx += 8) rect(c, sx - 1.5, y - 29, 3, 2, gold);
+  arch(x, y + 4, 16, 28);                                                  // great door
+  for (const ax of [-28, 28]) { arch(x + ax, y - 8, 8, 16); }               // side arches
+  rect(c, x - 10, y + 4, 20, 4, "#d9cbb0", edge, 0.8);                     // step
+  // Central drum and great dome
+  rect(c, x - 18, y - 60, 36, 26, wall, edge, 1.2);
+  for (let sx = x - 15; sx <= x + 15; sx += 10) arch(x + sx - x, y - 42, 6, 12);
+  line(c, x - 18, y - 54, x + 18, y - 54, teal, 1.6);
+  dome(x, y - 60, 20);
+  // Minarets
+  for (const tx of [x - 40, x + 40]) {
+    const tg = c.createLinearGradient(tx - 7, 0, tx + 7, 0); tg.addColorStop(0, "#f6ecd8"); tg.addColorStop(1, wallDark);
+    rect(c, tx - 7, y - 78, 14, 82, tg, edge, 1.2);
+    rect(c, tx - 9, y - 50, 18, 4, wall, edge, 1);                          // balcony
+    for (let k = -1; k <= 1; k++) rect(c, tx + k * 5 - 0.8, y - 56, 1.6, 6, edge);
+    rect(c, tx - 2, y - 70, 4, 7, "#3e2a1a");                              // window
+    line(c, tx - 7, y - 62, tx + 7, y - 62, teal, 1.4);
+    dome(tx, y - 78, 8);
+  }
+}
 
 // The Temple of Heaven (祈年殿): a round hall on a wide three-tier white marble terrace with balustrades,
 // soft vermilion walls with gold-framed doors, and three conical roofs of deep-blue glazed tiles whose
@@ -574,12 +672,13 @@ export function drawSign(c, x, y, face = { dc: 1, dr: 0 }) {
 // Both have a gatehouse, battlements, arrow slits and a portcullis. Lit from the left, shaded on the right.
 export const CASTLE_STYLES = [
   { light: "#b0aca4", dark: "#6e6a63", keepLight: "#a8a49c", keepDark: "#66625b", gateLight: "#9e9a92", gateDark: "#605c56", towerLight: "#b8b4ac", towerMid: "#8f8b84", towerDark: "#5a5650", roof: "#3f4a56", roofEdge: "#1f262d", roofShine: "rgba(140,160,180,0.35)", mortar: "rgba(40,36,32,0.35)", outline: "#3a3733", banner: "#1565c0", square: false },
-  { light: "#e0c9a0", dark: "#a8865a", keepLight: "#d9c094", keepDark: "#9c7a4e", gateLight: "#d4b98a", gateDark: "#93714a", towerLight: "#e6d0a8", towerMid: "#c2a06e", towerDark: "#8a6a44", roof: "#b5533a", roofEdge: "#6e2f1f", roofShine: "rgba(255,200,160,0.35)", mortar: "rgba(90,60,30,0.3)", outline: "#5a4023", banner: "#2e7d32", square: true },
+  { banner: "#2e7d32", palace: true },                                  // white desert palace with turquoise domes: drawn by drawPalace
   { banner: "#e53935", pagoda: true },                                 // Chinese palace: drawn by drawPagoda
 ];
 function drawCastle(c, x, y, styleIndex = 0) {
   const S = CASTLE_STYLES[styleIndex] || CASTLE_STYLES[0];
   if (S.pagoda) return drawPagoda(c, x, y);
+  if (S.palace) return drawPalace(c, x, y);
   const stone = (x0, y0, w, h, light = S.light, dark = S.dark) => {
     const g = c.createLinearGradient(x0, 0, x0 + w, 0);
     g.addColorStop(0, light); g.addColorStop(1, dark);
