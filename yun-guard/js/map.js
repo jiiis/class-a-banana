@@ -97,7 +97,7 @@ export function generateMap(seed) {
     const other = exits.find((o) => o !== ex && o.edge === ex.edge);
     const options = [];
     for (const sc of [fullScale, 0.82, 0.68, 0.58]) {
-      const yLo = 146 * sc + 10, yHi = H - 14 * sc - 12, xLo = 56 * sc + 12, xHi = W - 56 * sc - 12;   // tallest design (the temple's banner) and widest terrace stay off the edges
+      const yLo = 146 * sc + 10, yHi = H - 26 * sc - 12, xLo = 56 * sc + 12, xHi = W - 56 * sc - 12;   // tallest design (the temple's banner) and widest terrace stay off the edges
       if (ex.edge === "right" || ex.edge === "left") {
         const x = ex.edge === "right" ? xHi : xLo;
         const oy = other ? center(edgeCell(other.edge, other.pos)).y : null;

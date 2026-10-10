@@ -147,7 +147,7 @@ export function draw() {
     if (g.style === 2) {                                                    // Moorish gate: the gold tips of the domes catch the sun
       const tw = 0.5 + 0.5 * Math.sin(state.time * 2.2 + i + 2);
       const tips = [{ x: a.x, y: a.y - 39 - 7 * 2.25 }, { x: b.x, y: b.y - 39 - 7 * 2.25 }];
-      if (Math.abs(a.y - b.y) < 1) tips.push({ x: (a.x + b.x) / 2, y: a.y - 30 - ((Math.abs(a.x - b.x)) / 2 - 2) - 7 - 6 * 2.25 });
+      if (Math.abs(a.y - b.y) < 1) tips.push({ x: (a.x + b.x) / 2, y: a.y - 36 - 22 - 6 * 2.25 });
       for (const f of tips) { ctx.globalAlpha = 0.12 + tw * 0.18; circle(ctx, f.x, f.y, 4 + tw * 3, "rgba(255,225,130,0.7)"); ctx.globalAlpha = 0.3 + tw * 0.5; circle(ctx, f.x - 0.4, f.y - 0.4, 0.8, "#fffbe6"); ctx.globalAlpha = 1; }
       return;
     }
@@ -195,7 +195,20 @@ export function draw() {
       }
       return;
     }
-    flag(k.x, k.y - (k.style === 1 ? 104 + 22 : 92) * k.scale, 22 * k.scale, CASTLE_STYLES[k.style].banner, 1 + i);   // the palace pole stands on its great dome
+    if (k.style === 1) {                                                    // the palace flies no flag: the crescent glints and the fountain plays
+      const sc = k.scale, tw = 0.5 + 0.5 * Math.sin(state.time * 2.2 + i + 3);
+      const cx = k.x, cy = k.y - (60 + 20 * 2.25 + 5) * sc;
+      ctx.globalAlpha = 0.1 + tw * 0.16; circle(ctx, cx, cy, (6 + tw * 3) * sc, "rgba(255,225,130,0.7)"); ctx.globalAlpha = 0.3 + tw * 0.5; circle(ctx, cx - 3.5 * sc, cy + 1 * sc, 0.8, "#fffbe6"); ctx.globalAlpha = 1;
+      const fx = k.x, fy = k.y + 17 * sc;
+      for (let j = 0; j < 6; j++) {                                         // water droplets arcing out of the spout
+        const p = (state.time * 0.9 + j / 6) % 1, side = j % 2 ? 1 : -1, dx = side * p * 7 * sc, dy = -(Math.sin(p * Math.PI) * 10 + 2) * sc;
+        ctx.globalAlpha = 0.85 * (1 - p * 0.6); circle(ctx, fx + dx, fy - 1 * sc + dy, 1 * sc, "#e3f2fd");
+      }
+      for (let j = 0; j < 2; j++) { const p = (state.time * 0.6 + j / 2) % 1; ctx.globalAlpha = (1 - p) * 0.5; ctx.strokeStyle = "#e3f2fd"; ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(fx, fy, (2 + p * 6) * sc, (1 + p * 2.8) * sc, 0, 0, Math.PI * 2); ctx.stroke(); }   // ripples
+      ctx.globalAlpha = 1;
+      return;
+    }
+    flag(k.x, k.y - 92 * k.scale, 22 * k.scale, CASTLE_STYLES[k.style].banner, 1 + i);
   });
 
   // Scorch marks from cannonballs slowly fade away

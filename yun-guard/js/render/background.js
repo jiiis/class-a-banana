@@ -534,13 +534,14 @@ function drawMoorishGate(c, g) {
     line(c, cx - r, cy, cx + r, cy, goldDark, 1.2);
     line(c, cx, cy - r * 1.95, cx, cy - r * 2.2, goldDark, 1.4); circle(c, cx, cy - r * 2.25, 1.5, gold, goldDark, 0.6);
   };
-  if (across) {                                                            // horseshoe arch over the road
-    const lx = Math.min(a.x, b.x), rx = Math.max(a.x, b.x), cx = (lx + rx) / 2, cy = a.y - 30, r = (rx - lx) / 2 - 2;
-    c.fillStyle = wall; c.beginPath(); c.arc(cx, cy, r + 7, Math.PI * 1.05, Math.PI * 1.95); c.arc(cx, cy, r, Math.PI * 1.95, Math.PI * 1.05, true); c.closePath(); c.fill();
+  if (across) {                                                            // a shallow horseshoe arch joining the post caps over the road
+    const lx = Math.min(a.x, b.x), rx = Math.max(a.x, b.x), cx = (lx + rx) / 2, cy = a.y - 36, hw = (rx - lx) / 2;
+    c.fillStyle = wall; c.beginPath();
+    c.ellipse(cx, cy, hw + 2, 22, 0, Math.PI, 0); c.ellipse(cx, cy, hw - 7, 14, 0, 0, Math.PI, true); c.closePath(); c.fill();
     c.strokeStyle = edge; c.lineWidth = 1.2; c.stroke();
-    c.strokeStyle = teal; c.lineWidth = 2; c.beginPath(); c.arc(cx, cy, r + 3.5, Math.PI * 1.08, Math.PI * 1.92); c.stroke();   // tile band along the arch
-    for (let t = 1.1; t < 1.92; t += 0.12) { const px = cx + Math.cos(t * Math.PI) * (r + 3.5), py = cy + Math.sin(t * Math.PI) * (r + 3.5); circle(c, px, py, 0.9, gold); }
-    dome(cx, cy - r - 7, 6);                                                // a small dome crowns the arch
+    c.strokeStyle = teal; c.lineWidth = 2; c.beginPath(); c.ellipse(cx, cy, hw - 2.5, 18, 0, Math.PI * 1.04, Math.PI * 1.96); c.stroke();   // tile band along the arch
+    for (let t = 1.1; t < 1.92; t += 0.1) circle(c, cx + Math.cos(t * Math.PI) * (hw - 2.5), cy + Math.sin(t * Math.PI) * 18, 0.9, gold);
+    dome(cx, cy - 22, 6);                                                   // a small dome crowns the arch
   }
   for (const p of [a, b]) {
     castShadow(c, p.x, p.y + 4, 8, 28);
@@ -592,6 +593,18 @@ function drawPalace(c, x, y) {
   for (let sx = x - 15; sx <= x + 15; sx += 10) arch(x + sx - x, y - 42, 6, 12);
   line(c, x - 18, y - 54, x + 18, y - 54, teal, 1.6);
   dome(x, y - 60, 20);
+  // A gold crescent crowns the great dome (it glints live in draw.js)
+  const cy0 = y - 60 - 20 * 2.25 - 5;
+  c.fillStyle = gold; c.beginPath();
+  c.arc(x, cy0, 5, Math.PI * 0.25, Math.PI * 1.75);                       // outer edge of the crescent
+  c.arc(x + 2.6, cy0 - 1.2, 4.2, Math.PI * 1.6, Math.PI * 0.4, true);     // inner edge, curving back
+  c.closePath(); c.fill(); c.strokeStyle = goldDark; c.lineWidth = 0.8; c.stroke();
+  line(c, x, cy0 + 5, x, cy0 + 9, goldDark, 1.6);                           // its little stem
+  // A courtyard fountain before the door: an octagonal basin of blue tile
+  const fy = y + 17;
+  c.fillStyle = wall; c.beginPath(); for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2 + Math.PI / 8; const px = x + Math.cos(a) * 12, py = fy + Math.sin(a) * 6; k ? c.lineTo(px, py) : c.moveTo(px, py); } c.closePath(); c.fill(); c.strokeStyle = edge; c.lineWidth = 1; c.stroke();
+  ellipse(c, x, fy, 9, 4.2, "#4a93c4", tealDark, 0.8);
+  circle(c, x, fy - 1, 2, wall, edge, 0.6);                                                      // central spout
   // Minarets
   for (const tx of [x - 40, x + 40]) {
     const tg = c.createLinearGradient(tx - 7, 0, tx + 7, 0); tg.addColorStop(0, "#f6ecd8"); tg.addColorStop(1, wallDark);
