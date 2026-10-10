@@ -22,23 +22,12 @@ export function drawCritter(c) {
   ctx.restore();
 }
 
-// Birds floating on a pond: only the top half shows above the water
+// A duck floating on a pond: only the top half shows above the water
 export function drawWaterBird(kind, x, y, dir, t) {
   ctx.save();
   ctx.translate(x, y + Math.sin(t * 2) * 0.6);
   ctx.scale(dir, 1);
-  if (kind === "swan") {
-    ctx.scale(0.72, 0.72);
-    ellipse(ctx, 0, -2, 9, 4, "#fafafa", "#cfd8dc", 1);                     // body
-    poly(ctx, [[-8, -4], [-13, -9], [-6, -5]], "#fafafa", "#cfd8dc", 0.8); // raised tail feathers
-    ctx.strokeStyle = "#fafafa"; ctx.lineCap = "round";
-    ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(4, -2); ctx.quadraticCurveTo(8, -3, 10, -6.5); ctx.stroke();                 // thick base rising from the breast
-    ctx.lineWidth = 3.2; ctx.beginPath(); ctx.moveTo(10, -6.5); ctx.bezierCurveTo(13, -10, 11, -14, 7, -14.5); ctx.bezierCurveTo(3, -15, 4, -21, 8.5, -21); ctx.stroke();   // then the S up to the head
-    circle(ctx, 9, -21.5, 2.6, "#fafafa", "#cfd8dc", 0.8);                   // head
-    poly(ctx, [[11, -22], [15, -21], [11, -20]], "#fb8c00");               // bill, pointing gently down and forward
-    rect(ctx, 10, -22.7, 2, 1.6, "#212121");                                // black mask
-    circle(ctx, 9.7, -22.1, 0.6, "#212121");
-  } else {
+  {
     ellipse(ctx, 0, -1.5, 6.5, 3, "#8d6e63", "#5d4037", 1);               // duck body
     ellipse(ctx, 0.5, -2, 4, 1.8, "#a1887f");
     poly(ctx, [[-6, -3], [-9.5, -5], [-6, -1]], "#5d4037");                // tail

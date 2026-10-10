@@ -278,10 +278,10 @@ function makePonds(rand) {
     p.rx = rx * (0.85 + rand() * 0.15); p.ry = p.rx * (0.55 + rand() * 0.2);
     // A gently irregular outline: a radius factor for each of 12 directions
     p.wobble = Array.from({ length: 12 }, () => 0.82 + rand() * 0.36);
-    // Big ponds attract water birds: a pair of ducks, or a swan or two, drifting slowly around
+    // Big ponds attract ducks, drifting slowly around
     if (p.rx >= 70) {
-      const swans = rand() < 0.45, n = 1 + Math.floor(rand() * (swans ? 2 : 3));
-      p.birds = Array.from({ length: n }, (_, k) => ({ kind: swans ? "swan" : "duck", a0: rand() * Math.PI * 2 + k * 1.3, r: 0.25 + rand() * 0.4, speed: (0.05 + rand() * 0.06) * (rand() < 0.5 ? 1 : -1) }));
+      const n = 1 + Math.floor(rand() * 3);
+      p.birds = Array.from({ length: n }, (_, k) => ({ kind: "duck", a0: rand() * Math.PI * 2 + k * 1.3, r: 0.25 + rand() * 0.4, speed: (0.05 + rand() * 0.06) * (rand() < 0.5 ? 1 : -1) }));
     }
     map.ponds.push(p);
   }
