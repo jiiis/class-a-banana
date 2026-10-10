@@ -89,26 +89,26 @@ export function generateMap(seed) {
   const gatePillarPoints = (g) => { const px = -g.out.y, py = g.out.x, span = ROAD_WIDTH / 2 + 14; return [{ x: g.x + px * span, y: g.y + py * span }, { x: g.x - px * span, y: g.y - py * span }]; };
   const gateClear = (x, y, sc) => map.exits.every((g) => gatePillarPoints(g).every((pp) => Math.abs(pp.x - x) > 52 * sc + 14 || pp.y < y - 96 * sc - 10 || pp.y > y + 12 * sc + 60));
   // Enough room around it first (a road's width of grass), then as close to its own road as possible, full size preferred
-  const score = (o) => (gateClear(o.x, o.y, o.sc) ? 0 : -1000) + Math.min(roomAround(o.x, o.y, o.sc), 70) + (o.pref ? 10 : 0) - o.d * 0.08 + o.sc * 45;   // bigger is better when the room is similar
+  const score = (o) => (gateClear(o.x, o.y, o.sc) ? 0 : -1000) + Math.min(roomAround(o.x, o.y, o.sc), 70) + (o.pref ? 10 : 0) - o.d * 0.06 + o.sc * 110;   // a big home matters more than a short walk from the gate
   // Each castle picks, from spots along its edge on both sides of the road (and a smaller size if it must),
   // the one with the most open grass, leaning away from a sister castle on the same edge when both are fine
   map.castles = exits.map((ex, i) => {
     const c = center(edgeCell(ex.edge, ex.pos));
     const other = exits.find((o) => o !== ex && o.edge === ex.edge);
     const options = [];
-    for (const sc of [fullScale, 0.82, 0.68, 0.58]) {
+    for (const sc of [fullScale, 0.88, 0.78, 0.68, 0.58]) {
       const yLo = 146 * sc + 10, yHi = H - 26 * sc - 12, xLo = 56 * sc + 12, xHi = W - 56 * sc - 12;   // tallest design (the temple's banner) and widest terrace stay off the edges
       if (ex.edge === "right" || ex.edge === "left") {
         const x = ex.edge === "right" ? xHi : xLo;
         const oy = other ? center(edgeCell(other.edge, other.pos)).y : null;
-        for (const d of [66, 126, 186, 246, 306]) {
+        for (const d of [66, 126, 186, 246, 306, 366, 426]) {
           options.push({ x, y: clamp(c.y - d, yLo, yHi), pref: oy === null || c.y < oy, d, sc });
           options.push({ x, y: clamp(c.y + d + 80, yLo, yHi), pref: oy === null || c.y > oy, d, sc });
         }
       } else {
         const y = ex.edge === "top" ? yLo : yHi;
         const ox = other ? center(edgeCell(other.edge, other.pos)).x : null;
-        for (const d of [124, 184, 244, 304, 364]) {
+        for (const d of [124, 184, 244, 304, 364, 424, 484]) {
           options.push({ x: clamp(c.x - d, xLo, xHi), y, pref: ox === null || c.x < ox, d, sc });
           options.push({ x: clamp(c.x + d, xLo, xHi), y, pref: ox === null || c.x > ox, d, sc });
         }
@@ -176,7 +176,7 @@ function makeRivers(rand) {
           const t = k / steps, wob = Math.sin(k * freq + ph) * amp * Math.sin(t * Math.PI) + (rand() - 0.5) * 20 * Math.sin(t * Math.PI);
           pts.push({ x: start.x + (join.x - start.x) * t - ny * wob, y: start.y + (join.y - start.y) * t + nx * wob });
         }
-        pts.push({ x: join.x + nx * join.w * 0.1, y: join.y + ny * join.w * 0.1 });     // end just inside the river's water so the two merge
+        pts.push({ x: join.x + bnx * join.w * 0.5, y: join.y + bny * join.w * 0.5 });   // end right on the river's near bank; a mouth patch blends the two
         smoothPoints(pts, 2);
         const trib = finishRiver(pts, rand, { base: river.base * (0.7 + rand() * 0.15), taper: true, parent: river, joinAt: join });
         if (trib) { river.tributary = trib; break; }
@@ -214,8 +214,9 @@ function finishRiver(pts, rand, { base, taper = false, parent = null, joinAt = n
   }
   for (let pass = 0; pass < 2; pass++) for (let i = 1; i < pts.length - 1; i++) pts[i].w = (pts[i - 1].w + pts[i].w + pts[i + 1].w) / 3;
   pts.forEach((p) => { p.w = Math.max(taper ? 22 : 26, Math.min(80, p.w)); });
-  if (taper) { const n = pts.length; pts[n - 1].w *= 1.7; pts[n - 2].w *= 1.35; pts[n - 3].w *= 1.1; }   // the mouth flares out where it meets the river
+  if (taper) { const n = pts.length; pts[n - 1].w *= 1.3; pts[n - 2].w *= 1.15; }   // the mouth widens a little where it meets the river
   const river = { points: pts, width: Math.max(...pts.map((p) => p.w)), base, parent };   // width = the widest point (used for clearances)
+  if (parent) river.mouth = { x: pts[pts.length - 1].x, y: pts[pts.length - 1].y, r: pts[pts.length - 1].w * 0.55 };   // where it meets its river
   // Wherever the water so much as touches the road there must be a bridge. Walk along the river,
   // note every stretch that comes within reach of the road, and reject rivers that run alongside
   // the road at a shallow angle (they would need an endless bridge).
@@ -548,7 +549,7 @@ function scatterDeco(rand) {
     const type = roll < 0.32 ? "tree" : roll < 0.5 ? "bush" : roll < 0.63 ? "rock" : roll < 0.85 ? "flower" : roll < 0.93 ? "mushroom" : "stump";
     // Every piece of scenery gets its own look: a variant, a size and a seed for its small random details
     const size = type === "flower" ? 0.5 + rand() * 0.25 : type === "mushroom" ? 0.42 + rand() * 0.2 : type === "stump" ? 0.6 + rand() * 0.2 : type === "tree" ? 1.0 + rand() * 0.4 : 0.8 + rand() * 0.5;   // small things stay small, trees stand tall
-    out.push({ type, x: p.x, y: p.y, s: size, variant: Math.floor(rand() * 3), seed: Math.floor(rand() * 1e6) });
+    out.push({ type, x: p.x, y: p.y, s: size, variant: Math.floor(rand() * (type === "tree" ? 4 : 3)), seed: Math.floor(rand() * 1e6) });
     // Company: trees often come as a small wood of 2 to 4, flowers as a patch of 3 to 7
     const group = type === "tree" && rand() < 0.55 ? { n: 2 + Math.floor(rand() * 3), near: 30, far: 66, gap: 24, s: () => 0.95 + rand() * 0.4 }
       : type === "flower" && rand() < 0.75 ? { n: 3 + Math.floor(rand() * 5), near: 10, far: 34, gap: 8, s: () => 0.45 + rand() * 0.3 } : null;
@@ -557,7 +558,7 @@ function scatterDeco(rand) {
         const a = rand() * Math.PI * 2, d = group.near + rand() * (group.far - group.near);
         const q = { x: p.x + Math.cos(a) * d, y: p.y + Math.sin(a) * d * 0.7 };
         if (q.x < 20 || q.x > W - 20 || q.y < 20 || q.y > H - 20 || !clear(q, { deco: group.gap })) continue;
-        out.push({ type, x: q.x, y: q.y, s: group.s(), variant: Math.floor(rand() * 3), seed: Math.floor(rand() * 1e6) });
+        out.push({ type, x: q.x, y: q.y, s: group.s(), variant: Math.floor(rand() * (type === "tree" ? 4 : 3)), seed: Math.floor(rand() * 1e6) });
         k++;
       }
     }

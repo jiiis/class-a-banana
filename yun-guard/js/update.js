@@ -98,7 +98,9 @@ function updateFish(dt) {
       const a = r.points[i], b = r.points[i + 1], t = Math.random();
       const across = (Math.random() - 0.5) * ((a.w + b.w) / 2) * 0.5;   // stay inside the local width
       const nx = -(b.y - a.y), ny = b.x - a.x, nl = Math.hypot(nx, ny) || 1;
-      state.fish.push({ x: a.x + (b.x - a.x) * t + (nx / nl) * across, y: a.y + (b.y - a.y) * t + (ny / nl) * across, t: 0, dur: 0.85 + Math.random() * 0.3, dir: Math.random() < 0.5 ? 1 : -1, size: 3.4 + Math.random() * 2, hop: 10 + Math.random() * 7 });
+      const fx = a.x + (b.x - a.x) * t + (nx / nl) * across, fy = a.y + (b.y - a.y) * t + (ny / nl) * across;
+      if (map.bridges.some((br) => Math.hypot(br.x - fx, br.y - fy) < br.span / 2 + 16)) continue;   // never under a bridge
+      state.fish.push({ x: fx, y: fy, t: 0, dur: 0.85 + Math.random() * 0.3, dir: Math.random() < 0.5 ? 1 : -1, size: 3.4 + Math.random() * 2, hop: 10 + Math.random() * 7 });
     }
   }
   for (const p of map.ponds) {

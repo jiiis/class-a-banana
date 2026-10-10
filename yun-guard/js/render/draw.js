@@ -9,7 +9,7 @@ import { drawEnemy, drawCorpse } from "./creatures.js";
 import { drawSoldier } from "./soldiers.js";
 import { drawCritter, drawWaterBird } from "./critters.js";
 import { drawHero, drawDog, drawEagle } from "./hero.js";
-import { drawWeather } from "../weather.js";
+import { drawWeather, drawSnowCover } from "../weather.js";
 
 let background = null;   // built on the first frame, after the map has been generated
 
@@ -25,6 +25,7 @@ function drawWater() {
         const nx = -(b.y - a.y), ny = b.x - a.x, nl = Math.hypot(nx, ny) || 1;
         const off = Math.sin(T * 1.3 + i + k * 2) * ((a.w + b.w) / 2) * 0.25;
         const gx = a.x + (b.x - a.x) * t + (nx / nl) * off, gy = a.y + (b.y - a.y) * t + (ny / nl) * off;
+        if (map.bridges.some((br) => Math.hypot(br.x - gx, br.y - gy) < br.span / 2 + 14)) continue;   // not under a bridge
         ctx.globalAlpha = 0.35 + Math.sin(T * 4 + i + k) * 0.2;
         line(ctx, gx - (b.x - a.x) * 0.08, gy - (b.y - a.y) * 0.08, gx + (b.x - a.x) * 0.08, gy + (b.y - a.y) * 0.08, "#e3f2fd", 1.5);
       }
@@ -129,6 +130,7 @@ function drawSpot(s, i, occupied, hovered) {
 export function draw() {
   if (!background) background = buildBackground();
   ctx.drawImage(background, 0, 0);
+  drawSnowCover(ctx);                                        // settled snow lies on the ground
   drawWater();
   // Fallen monsters lie on the road under everything else
   for (const c of state.corpses) drawCorpse(c);
@@ -142,6 +144,22 @@ export function draw() {
     const r = towerRange(focus);
     circle(ctx, focus.x, focus.y, r, "rgba(255,255,255,0.12)", "rgba(255,255,255,0.6)", 2);
     if (focus.rally) drawRallyFlag(focus.rally, !!state.rallyFor);
+  }
+
+  // Chevrons on the road at the map edges, pulsing in the direction the monsters travel
+  const chevron = (cx, cy, ax, ay, glow) => {
+    const px = -ay, py = ax;
+    ctx.strokeStyle = `rgba(70,45,20,${0.25 + glow * 0.45})`; ctx.lineWidth = 3; ctx.lineCap = "round"; ctx.lineJoin = "round";
+    ctx.beginPath(); ctx.moveTo(cx - ax * 5 + px * 10, cy - ay * 5 + py * 10); ctx.lineTo(cx + ax * 5, cy + ay * 5); ctx.lineTo(cx - ax * 5 - px * 10, cy - ay * 5 - py * 10); ctx.stroke();
+    if (glow > 0.6) { ctx.strokeStyle = `rgba(255,236,170,${(glow - 0.6) * 0.9})`; ctx.lineWidth = 1.2; ctx.stroke(); }   // a pale shimmer rolls along
+  };
+  for (const g of map.exits) for (let k = 0; k < 3; k++) {                 // beyond the gate, on the way out
+    const glow = 0.5 + 0.5 * Math.sin(state.time * 3 - k * 1.1);
+    chevron(g.x + g.out.x * (36 + k * 16), g.y + g.out.y * (36 + k * 16), g.out.x, g.out.y, glow);
+  }
+  for (const e of map.entries) for (let k = 0; k < 3; k++) {               // before the lair, on the way in
+    const glow = 0.5 + 0.5 * Math.sin(state.time * 3 - k * 1.1);
+    chevron(e.rx - e.inn.x * (30 + k * 16), e.ry - e.inn.y * (30 + k * 16), e.inn.x, e.inn.y, glow);
   }
 
   // Droppings left by the animals, fading away

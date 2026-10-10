@@ -85,13 +85,13 @@ const DRAW = {
     const sw = moving ? Math.sin(phase) * 4 : 0;
     const nod = moving ? 0 : Math.sin(phase) * 1.5;
     for (const [lx, d] of [[-7, 1], [-3, -1], [5, 1], [8, -1]]) line(ctx, lx, -6, lx + sw * d, 0, "#4e342e", 2.2);
-    ellipse(ctx, 0, -9, 11, 5.5, "#ef6c00", "#bf360c", 1);           // body
+    ellipse(ctx, 0, -9, 11, 5.5, "#ef6c00", "#d9641a", 0.7);           // body
     ellipse(ctx, 2, -7, 7, 3, "#ffe0b2");                            // white belly
     line(ctx, -11, -10, -19, -7 + sw * 0.5, "#ef6c00", 5);           // bushy tail
     circle(ctx, -20, -6.5 + sw * 0.5, 3, "#fff3e0");                  // white tail tip
-    circle(ctx, 11, -12 + nod, 5, "#ef6c00", "#bf360c", 1);           // head
-    poly(ctx, [[8, -15 + nod], [9, -22 + nod], [12.5, -15.5 + nod]], "#ef6c00", "#bf360c", 1);   // ears
-    poly(ctx, [[12, -15.5 + nod], [14.5, -21 + nod], [16, -14 + nod]], "#ef6c00", "#bf360c", 1);
+    circle(ctx, 11, -12 + nod, 5, "#ef6c00", "#d9641a", 0.7);           // head
+    poly(ctx, [[8, -15 + nod], [9, -22 + nod], [12.5, -15.5 + nod]], "#ef6c00", "#d9641a", 0.7);   // ears
+    poly(ctx, [[12, -15.5 + nod], [14.5, -21 + nod], [16, -14 + nod]], "#ef6c00", "#d9641a", 0.7);
     poly(ctx, [[9, -16 + nod], [9.5, -20 + nod], [11.5, -16 + nod]], "#3e2723");                   // black ear tips
     poly(ctx, [[13, -16 + nod], [14.5, -19.5 + nod], [15, -15 + nod]], "#3e2723");
     ellipse(ctx, 15, -10 + nod, 3.5, 2.5, "#fff3e0");                 // muzzle

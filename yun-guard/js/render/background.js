@@ -89,14 +89,17 @@ function strokePath(c, width, color) {
 // The road: a sunken dirt track that is never the same width twice. It is drawn as hundreds of
 // short, round-capped strokes whose width wanders along the way, then the edges are roughed up
 // with earth lumps and grass creeping in, so there is no clean outline anywhere.
+let roadSamples = [];                                           // every road sample with its drawn width (bridges read these)
 function drawRoad(c, rand, paths) {
   // Pre-compute the sample points and the wandering width of every route
+  roadSamples = [];
   const roads = paths.map((path) => {
     const pts = pointsAlongPath(path, 4);
     pts.push({ ...path[path.length - 1], nx: 0, ny: 1 });
     const ph1 = rand() * 6, ph2 = rand() * 6;
     let w = pts.map((_, i) => ROAD_WIDTH * (0.82 + 0.2 * Math.sin(i * 0.06 + ph1) + 0.1 * Math.sin(i * 0.19 + ph2)) + (rand() - 0.5) * 6);
     for (let pass = 0; pass < 3; pass++) w = w.map((v, i) => (w[Math.max(0, i - 1)] + v + w[Math.min(w.length - 1, i + 1)]) / 3);
+    pts.forEach((p, i) => roadSamples.push({ x: p.x, y: p.y, w: w[i] }));
     return { path, pts, w };
   });
   // Is this point on the surface of one of the OTHER routes? (used to keep edge details off junctions)
@@ -232,12 +235,16 @@ function drawRiver(c, r, rand, pass) {
     c.closePath();
     c.fill();
   };
+  const mo = r.mouth;
   if (pass === 0) {
     band(1, "rgba(60,90,35,0.55)", 7);                                // damp bank
+    if (mo) circle(c, mo.x, mo.y, mo.r + 7, "rgba(60,90,35,0.55)");   // a round mouth so the banks of the two rivers flow together
     band(1, "#5c4a33", 3);                                            // mud edge
+    if (mo) circle(c, mo.x, mo.y, mo.r + 3, "#5c4a33");
     return;
   }
   band(1, "#2f6a93");                                                 // deep water
+  if (mo) circle(c, mo.x, mo.y, mo.r, "#2f6a93");
   // The shallows lighten toward the middle in soft, wavering layers rather than hard stripes
   const ph = rand() * 6;
   band((i) => 0.86 + Math.sin(i * 0.7 + ph) * 0.05, "rgba(74,147,196,0.35)", 0, 1);
@@ -290,13 +297,24 @@ function drawBridge(c, b) {
   c.save();
   c.translate(b.x, b.y);
   c.rotate(b.angle);
-  const half = b.span / 2, wide = ROAD_WIDTH / 2 + 4;
-  rect(c, -half - 3, -wide - 2, b.span + 6, wide * 2 + 4, "rgba(0,0,0,0.25)");          // shadow onto the water
-  rect(c, -half, -wide, b.span, wide * 2, "#8d6e63", "#4e342e", 1.5);                  // deck
-  for (let x = -half + 4; x < half; x += 7) line(c, x, -wide, x, wide, "#6d4c41", 1.2); // planks
-  for (const side of [-1, 1]) {                                                         // rails and posts
-    line(c, -half, side * (wide - 2), half, side * (wide - 2), "#5d4037", 3);
-    for (let x = -half + 2; x <= half - 2; x += 14) { rect(c, x - 2, side * (wide - 2) - 6, 4, 12, "#6d4c41", "#3e2723", 0.8); }
+  const half = b.span / 2, dx = Math.cos(b.angle), dy = Math.sin(b.angle);
+  // The deck follows the road's own wandering width: sample the drawn road along the bridge
+  const halfAt = (t) => {
+    const px = b.x + dx * t, py = b.y + dy * t;
+    let best = null, bd = Infinity;
+    for (const s of roadSamples) { const d = (s.x - px) ** 2 + (s.y - py) ** 2; if (d < bd) { bd = d; best = s; } }
+    return (best ? best.w : ROAD_WIDTH) / 2 + 3;
+  };
+  const steps = Math.max(4, Math.round(b.span / 6)), top = [], bot = [];
+  for (let i = 0; i <= steps; i++) { const t = -half - 3 + (i / steps) * (b.span + 6); const hw = halfAt(t); top.push([t, -hw]); bot.push([t, hw]); }
+  const deck = [...top, ...bot.slice().reverse()];
+  c.globalAlpha = 0.25; poly(c, deck.map(([x, y]) => [x, y + 3]), "#000"); c.globalAlpha = 1;   // shadow onto the water
+  poly(c, deck, "#8d6e63", "#4e342e", 1.5);                                                 // deck
+  for (let i = 1; i < steps; i++) { const [x, y0] = top[i], y1 = bot[i][1]; line(c, x, y0 + 1, x, y1 - 1, "#6d4c41", 1.2); }   // planks
+  for (const side of [-1, 1]) {                                                             // rails and posts, hugging the deck edge
+    c.strokeStyle = "#5d4037"; c.lineWidth = 3; c.lineCap = "round"; c.beginPath();
+    (side < 0 ? top : bot).forEach(([x, y], i) => (i ? c.lineTo(x, y - side * 2) : c.moveTo(x, y - side * 2))); c.stroke();
+    for (let i = 0; i <= steps; i += 2) { const [x, y] = (side < 0 ? top : bot)[i]; rect(c, x - 2, y - side * 2 - 6, 4, 12, "#6d4c41", "#3e2723", 0.8); }
   }
   c.restore();
 }
@@ -334,10 +352,21 @@ const DRAW_DECO = {
       const tiers = 3 + Math.floor(r() * 2), g1 = ["#1b5e20", "#2e7d32", "#245a1a"][Math.floor(r() * 3)];
       for (let i = 0; i < tiers; i++) {
         const w = (14 - i * 3) * s, ty = y - 6 * s - i * 9 * s;
-        poly(c, [[x - w, ty], [x, ty - 13 * s], [x + w, ty]], g1, "#0d3d12", 0.8);
-        poly(c, [[x - w, ty], [x, ty - 13 * s], [x - w * 0.2, ty]], "rgba(255,255,255,0.1)");
+        // Not a perfect triangle: the tip leans a little, the skirts droop unevenly, and a branch pokes out
+        const lean = (r() - 0.5) * 3 * s, lDrop = r() * 2.5 * s, rDrop = r() * 2.5 * s, lw = w * (0.85 + r() * 0.3), rw = w * (0.85 + r() * 0.3);
+        poly(c, [[x - lw, ty + lDrop], [x - lw * 0.55, ty - 4 * s - r() * 2 * s], [x + lean, ty - 13 * s], [x + rw * 0.55, ty - 4 * s - r() * 2 * s], [x + rw, ty + rDrop]], g1, "#0d3d12", 0.8);
+        poly(c, [[x - lw, ty + lDrop], [x + lean, ty - 13 * s], [x - lw * 0.2, ty]], "rgba(255,255,255,0.1)");
+        if (r() < 0.35) line(c, x + (r() < 0.5 ? -1 : 1) * lw * 0.9, ty - 1 * s, x + (r() < 0.5 ? -1 : 1) * (lw + 3 * s), ty + 1 * s, "#0d3d12", 1.2);   // a stray branch
       }
       if (r() < 0.3) for (let i = 0; i < 3; i++) circle(c, x + (r() - 0.5) * 10 * s, y - 12 * s - r() * 14 * s, 1.1 * s, "#8d6e63");   // cones
+    } else if (v === 3) {                                                    // cherry: dark trunk, a cloud of pink blossom
+      rect(c, x - 2.5 * s, y - 10 * s, 5 * s, 14 * s, "#4e342e");
+      line(c, x - 1 * s, y - 9 * s, x - 6 * s, y - 15 * s, "#4e342e", 2 * s); line(c, x + 1 * s, y - 10 * s, x + 6 * s, y - 15 * s, "#4e342e", 2 * s);
+      const blobs = 5 + Math.floor(r() * 3);
+      for (let i = 0; i < blobs; i++) { const a = r() * Math.PI * 2, d = r() * 8 * s; circle(c, x + Math.cos(a) * d, y - 18 * s + Math.sin(a) * d * 0.7, (6 + r() * 4) * s, r() < 0.5 ? "#f48fb1" : "#f8bbd0"); }
+      circle(c, x + (r() - 0.5) * 4 * s, y - 22 * s, (7 + r() * 3) * s, "#fce4ec");
+      for (let i = 0; i < 5; i++) circle(c, x + (r() - 0.5) * 20 * s, y - 16 * s + (r() - 0.5) * 12 * s, 1.1 * s, "#ec407a");   // deeper blossoms
+      for (let i = 0; i < 3; i++) circle(c, x + (r() - 0.5) * 26 * s, y - 2 * s + r() * 3, 1 * s, "#f8bbd0");                    // fallen petals
     } else {                                                                 // birch: pale trunk with bands, airy light canopy
       rect(c, x - 2.5 * s, y - 14 * s, 5 * s, 18 * s, "#eceff1", "#9e9e9e", 0.6);
       for (let i = 0; i < 4; i++) line(c, x - 2.5 * s, y - 12 * s + i * 4 * s + r() * 2, x + 2.5 * s, y - 11 * s + i * 4 * s, "#424242", 1);
@@ -412,12 +441,7 @@ export function lairStakes(e) {
 }
 function drawLairGround(c, e, rand) {
   const ax = e.inn.x, ay = e.inn.y, px = -ay, py = ax;
-  // Chevrons worn into the dirt, pointing the way the monsters come in
-  for (let k = -1; k <= 1; k++) {
-    const cx = e.rx + ax * 74 + ax * k * 16, cy = e.ry + ay * 74 + ay * k * 16;
-    c.strokeStyle = "rgba(70,45,20,0.45)"; c.lineWidth = 3; c.lineCap = "round"; c.lineJoin = "round";
-    c.beginPath(); c.moveTo(cx - ax * 5 + px * 10, cy - ay * 5 + py * 10); c.lineTo(cx + ax * 5, cy + ay * 5); c.lineTo(cx - ax * 5 - px * 10, cy - ay * 5 - py * 10); c.stroke();
-  }
+  // (the chevrons on the road are animated, drawn each frame in draw.js)
   // Scorched, trampled earth where the monsters pour in
   const g = c.createRadialGradient(e.rx - ax * 10, e.ry - ay * 10, 4, e.rx - ax * 10, e.ry - ay * 10, 60);
   g.addColorStop(0, "rgba(30,20,25,0.55)"); g.addColorStop(1, "rgba(30,20,25,0)");
@@ -461,13 +485,7 @@ export function gatePillars(g) {
   return [{ x: g.x + px * GATE_SPAN, y: g.y + py * GATE_SPAN }, { x: g.x - px * GATE_SPAN, y: g.y - py * GATE_SPAN }];
 }
 function drawGateGround(c, g) {
-  // Chevrons worn into the dirt, pointing the way out
-  const ax = g.out.x, ay = g.out.y, px = -ay, py = ax;
-  for (let k = -1; k <= 1; k++) {
-    const cx = g.x - ax * 26 + ax * k * 16, cy = g.y - ay * 26 + ay * k * 16;
-    c.strokeStyle = "rgba(70,45,20,0.45)"; c.lineWidth = 3; c.lineCap = "round"; c.lineJoin = "round";
-    c.beginPath(); c.moveTo(cx - ax * 5 + px * 10, cy - ay * 5 + py * 10); c.lineTo(cx + ax * 5, cy + ay * 5); c.lineTo(cx - ax * 5 - px * 10, cy - ay * 5 - py * 10); c.stroke();
-  }
+  // (the chevrons on the road are animated, drawn each frame in draw.js)
 }
 export function gateAnchorY(g) { const [a, b] = gatePillars(g); return Math.max(a.y, b.y) + 6; }
 export function drawGateStructure(c, g) {
