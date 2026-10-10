@@ -98,6 +98,16 @@ window.addEventListener("keydown", (ev) => {
 
 document.getElementById("next").addEventListener("click", startWave);
 
+// Restart: play this same map again from the start, with the same legend (R)
+function restartLevel() {
+  const q = new URLSearchParams();
+  q.set("seed", map.seed);
+  if (state.hero) q.set("hero", state.hero.kind);
+  location.href = `${location.pathname}?${q}`;
+}
+document.getElementById("restart-level").addEventListener("click", restartLevel);
+window.addEventListener("keydown", (ev) => { if (ev.code === "KeyR" && !ev.metaKey && !ev.ctrlKey && heroPick.style.display === "none") restartLevel(); });
+
 // Full screen: the round button, or F (hidden where the browser doesn't allow it, e.g. iPhone)
 const fsBtn = document.getElementById("fullscreen");
 const fsOn = () => !!document.fullscreenElement;

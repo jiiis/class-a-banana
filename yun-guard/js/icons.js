@@ -32,6 +32,7 @@ const P = {
   play:      '<path d="M7 4l13 8-13 8z"/>',
   pause:     '<path d="M7 4v16M17 4v16"/>',
   expand:    '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>',
+  restart:   '<path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/>',
   shrink:    '<path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/>',
   forward:   '<path d="M4 5l8 7-8 7z"/><path d="M13 5l8 7-8 7z"/>',
   swords:    '<path d="M3 3l8 8"/><path d="M11 11l-2 2"/><path d="M21 3l-8 8"/><path d="M13 11l2 2"/><path d="M6 14l4 4-3 3-4-4z"/><path d="M18 14l-4 4 3 3 4-4z"/>',
