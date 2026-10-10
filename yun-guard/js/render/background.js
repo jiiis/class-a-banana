@@ -499,7 +499,10 @@ function drawCastle(c, x, y, styleIndex = 0) {
     let row = 0;
     for (let yy = y0; yy < y0 + h; yy += step, row++) for (let xx = x0 + (row % 2) * 6 + 4; xx < x0 + w - 2; xx += 12) { c.beginPath(); c.moveTo(xx, yy); c.lineTo(xx, Math.min(yy + step, y0 + h)); c.stroke(); }
   };
-  const battlements = (x0, y0, w, light, dark) => { for (let xx = x0; xx < x0 + w; xx += 10) stone(xx, y0 - 7, 6, 8, light, dark); };
+  const battlements = (x0, y0, w, light, dark) => {           // merlons spaced to end flush with the wall's edges
+    const n = Math.max(2, Math.ceil(w / 10)), step = (w - 4) / (n - 1);     // same count as before, slimmer merlons
+    for (let i = 0; i < n; i++) stone(x0 + i * step, y0 - 7, 4, 8, light, dark);
+  };
   const slit = (sx, sy) => { rect(c, sx - 1.2, sy, 2.4, 7, "#1b1b1b"); rect(c, sx - 2.5, sy + 2.5, 5, 2, "#1b1b1b"); };
   const roof = (tx, ty, w, h) => {                            // conical (or, for square towers, pyramid) roof with a lit side
     poly(c, [[tx - w, ty], [tx, ty - h], [tx + w, ty]], S.roof, S.roofEdge, 1);
