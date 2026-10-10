@@ -128,107 +128,6 @@ export function draw() {
   if (!background) background = buildBackground();
   ctx.drawImage(background, 0, 0);
   drawWater();
-  // The banner on the castle keep ripples in the wind (the signpost and its flag are drawn with the actors below)
-  // Lairs: the skulls' eyes glow and green mist seeps out of the entrance
-  map.entries.forEach((e, i) => {
-    const T = state.time + i * 1.7;
-    for (const s of lairStakes(e)) { const gl = 0.5 + Math.sin(T * 3 + s.x) * 0.4; circle(ctx, s.x - 2.2, s.y - 36, 1.4, `rgba(118,255,3,${gl})`); circle(ctx, s.x + 2.2, s.y - 36, 1.4, `rgba(118,255,3,${gl})`); }
-    for (let k = 0; k < 5; k++) {
-      const p = (T * 0.25 + k / 5) % 1, spread = Math.sin(T * 0.7 + k * 2.3) * 22;
-      const mx = e.rx + e.inn.x * p * 70 - e.inn.y * spread, my = e.ry + e.inn.y * p * 70 + e.inn.x * spread - p * 6;
-      ctx.globalAlpha = 0.22 * (1 - p) * (0.6 + 0.4 * Math.sin(T * 2 + k));
-      circle(ctx, mx, my, 10 + p * 16, "#8bc34a");
-    }
-    ctx.globalAlpha = 1;
-  });
-  // Exit gates: torches burn on the pillars and a chain with the castle's banner hangs across the road
-  map.exits.forEach((g, i) => {
-    const [a, b] = gatePillars(g), T = state.time * 9 + i;
-    if (g.style === 2) {                                                    // Moorish gate: the gold tips of the domes catch the sun
-      const tw = 0.5 + 0.5 * Math.sin(state.time * 2.2 + i + 2);
-      const tips = [{ x: a.x, y: a.y - 39 - 7 * 2.25 }, { x: b.x, y: b.y - 39 - 7 * 2.25 }];
-      if (Math.abs(a.y - b.y) < 1) tips.push({ x: (a.x + b.x) / 2, y: a.y - 36 - 22 - 6 * 2.25 });
-      for (const f of tips) { ctx.globalAlpha = 0.12 + tw * 0.18; circle(ctx, f.x, f.y, 4 + tw * 3, "rgba(255,225,130,0.7)"); ctx.globalAlpha = 0.3 + tw * 0.5; circle(ctx, f.x - 0.4, f.y - 0.4, 0.8, "#fffbe6"); ctx.globalAlpha = 1; }
-      return;
-    }
-    if (g.style === 1) {                                                    // paifang: red lanterns swing from the posts with a warm glow
-      // The gold finials on the roofs catch the sun with a soft pulsing glow
-      const tw = 0.5 + 0.5 * Math.sin(state.time * 2.2 + i + 1);
-      const finials = Math.abs(a.y - b.y) < 1 ? [{ x: (a.x + b.x) / 2, y: a.y - 66 }] : [{ x: a.x, y: a.y - 58 }, { x: b.x, y: b.y - 58 }];
-      for (const f of finials) { ctx.globalAlpha = 0.12 + tw * 0.18; circle(ctx, f.x, f.y, 4 + tw * 3, "rgba(255,225,130,0.7)"); ctx.globalAlpha = 0.3 + tw * 0.5; circle(ctx, f.x - 0.5, f.y - 0.5, 0.9, "#fffbe6"); ctx.globalAlpha = 1; }
-      for (const p of [a, b]) {
-        const sway = Math.sin(state.time * 1.6 + p.x) * 2.5, lx = p.x + 7 + sway, ly = p.y - 36;
-        line(ctx, p.x + 5, p.y - 42, lx, ly - 6, "#5d0000", 1);
-        ctx.globalAlpha = 0.3; circle(ctx, lx, ly, 13, "rgba(255,120,60,0.6)"); ctx.globalAlpha = 1;
-        ellipse(ctx, lx, ly, 4, 5.5, "#c84a3f", "#7a2420", 0.8);
-        line(ctx, lx - 3, ly - 2, lx + 3, ly - 2, "rgba(255,255,255,0.25)", 1); line(ctx, lx - 3, ly + 2, lx + 3, ly + 2, "rgba(0,0,0,0.25)", 1);
-        rect(ctx, lx - 2, ly - 7, 4, 1.6, "#ffd54f"); rect(ctx, lx - 2, ly + 5.4, 4, 1.6, "#ffd54f");
-        line(ctx, lx, ly + 7, lx + sway * 0.3, ly + 12, "#ffd54f", 1);      // tassel
-      }
-      return;
-    }
-    const style = CASTLE_STYLES[(map.castles[i] || map.castles[0]).style];
-    ctx.strokeStyle = "#4e342e"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(a.x, a.y - 44); ctx.quadraticCurveTo((a.x + b.x) / 2, (a.y + b.y) / 2 - 36, b.x, b.y - 44); ctx.stroke();
-    const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2 - 40;
-    poly(ctx, [[mx - 7, my], [mx + 7, my], [mx + 6, my + 12 + Math.sin(state.time * 4) * 1.5], [mx, my + 18 + Math.sin(state.time * 5) * 2], [mx - 6, my + 12 + Math.sin(state.time * 4) * 1.5]], style.banner, "rgba(0,0,0,0.3)", 0.8);
-    for (const p of [a, b]) {
-      const fl = Math.sin(T + p.x) * 1.5, fl2 = Math.sin(T * 1.7 + p.y) * 1.2;
-      poly(ctx, [[p.x - 3, p.y - 46], [p.x + 3, p.y - 46], [p.x + fl, p.y - 56 - fl2]], "#ff9800");
-      poly(ctx, [[p.x - 1.5, p.y - 46], [p.x + 1.5, p.y - 46], [p.x + fl * 0.6, p.y - 52 - fl2]], "#ffeb3b");
-      ctx.globalAlpha = 0.25; circle(ctx, p.x, p.y - 50, 14, "rgba(255,180,60,0.6)"); ctx.globalAlpha = 1;
-    }
-  });
-  map.castles.forEach((k, i) => {
-    if (k.style === 2) {                                                    // the temple flies no flag: lanterns sway gently by the doors
-      // The gold finial catches the sun: a soft glow and a four-point glint that pulses
-      const fx = k.x, fy = k.y - 103 * k.scale, tw = 0.5 + 0.5 * Math.sin(state.time * 2.2 + i);
-      ctx.globalAlpha = 0.12 + tw * 0.18; circle(ctx, fx, fy, (5 + tw * 3) * k.scale, "rgba(255,225,130,0.7)"); ctx.globalAlpha = 1;
-      const r = (2 + tw * 3.5) * k.scale;
-      ctx.strokeStyle = `rgba(255,250,220,${0.25 + tw * 0.45})`; ctx.lineWidth = 1; ctx.beginPath();
-      ctx.moveTo(fx - r, fy); ctx.lineTo(fx + r, fy); ctx.moveTo(fx, fy - r); ctx.lineTo(fx, fy + r); ctx.stroke();
-      for (const side of [-1, 1]) {
-        const sway = Math.sin(state.time * 1.4 + i + side) * 1.6 * k.scale, lx = k.x + side * 45 * k.scale + sway, ly = k.y - 23 * k.scale;
-        line(ctx, k.x + side * 45 * k.scale, ly - 8 * k.scale, lx, ly - 4 * k.scale, "#5a1a16", 1);
-        ctx.globalAlpha = 0.28; circle(ctx, lx, ly, 9 * k.scale, "rgba(255,120,60,0.6)"); ctx.globalAlpha = 1;
-        ellipse(ctx, lx, ly, 2.6 * k.scale, 3.4 * k.scale, "#c84a3f", "#7a2420", 0.8);
-        rect(ctx, lx - 1.3 * k.scale, ly - 4.4 * k.scale, 2.6 * k.scale, 1, "#e9c55a"); rect(ctx, lx - 1.3 * k.scale, ly + 3.4 * k.scale, 2.6 * k.scale, 1, "#e9c55a");
-      }
-      return;
-    }
-    if (k.style === 1) {                                                    // the palace flies no flag: the crescent glints and the fountain plays
-      const sc = k.scale, tw = 0.5 + 0.5 * Math.sin(state.time * 2.2 + i + 3);
-      const cx = k.x, cy = k.y - (60 + 20 * 2.25 + 5) * sc;
-      ctx.globalAlpha = 0.1 + tw * 0.16; circle(ctx, cx, cy, (6 + tw * 3) * sc, "rgba(255,225,130,0.7)"); ctx.globalAlpha = 0.3 + tw * 0.5; circle(ctx, cx - 3.5 * sc, cy + 1 * sc, 0.8, "#fffbe6"); ctx.globalAlpha = 1;
-      const fx = k.x, fy = k.y + 17 * sc;
-      for (let j = 0; j < 6; j++) {                                         // water droplets arcing out of the spout
-        const p = (state.time * 0.9 + j / 6) % 1, side = j % 2 ? 1 : -1, dx = side * p * 7 * sc, dy = -(Math.sin(p * Math.PI) * 10 + 2) * sc;
-        ctx.globalAlpha = 0.85 * (1 - p * 0.6); circle(ctx, fx + dx, fy - 1 * sc + dy, 1 * sc, "#e3f2fd");
-      }
-      for (let j = 0; j < 2; j++) { const p = (state.time * 0.6 + j / 2) % 1; ctx.globalAlpha = (1 - p) * 0.5; ctx.strokeStyle = "#e3f2fd"; ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(fx, fy, (2 + p * 6) * sc, (1 + p * 2.8) * sc, 0, 0, Math.PI * 2); ctx.stroke(); }   // ripples
-      ctx.globalAlpha = 1;
-      return;
-    }
-    flag(k.x, k.y - 92 * k.scale, 22 * k.scale, CASTLE_STYLES[k.style].banner, 1 + i);
-  });
-
-  // Scorch marks from cannonballs slowly fade away
-  for (const sc of state.scorches) {
-    ctx.globalAlpha = 0.45 * (sc.life / sc.maxLife);
-    circle(ctx, sc.x, sc.y, sc.r, "#2b1d14");
-    circle(ctx, sc.x, sc.y, sc.r * 0.55, "#140c08");
-    ctx.globalAlpha = 1;
-  }
-
-  // Blood splashes soak into the ground
-  for (const b of state.blood) {
-    const fade = Math.min(1, b.life / 3);
-    ctx.globalAlpha = 0.55 * fade;
-    for (const d of b.drops) circle(ctx, b.x + d.x, b.y + d.y, d.r, "#8e1b1b");
-    ctx.globalAlpha = 0.35 * fade;                                   // darker centres so the drops look wet
-    for (const d of b.drops) circle(ctx, b.x + d.x, b.y + d.y, d.r * 0.55, "#5a0f0f");
-    ctx.globalAlpha = 1;
-  }
-
   // Fallen monsters lie on the road under everything else
   for (const c of state.corpses) drawCorpse(c);
 
@@ -356,6 +255,107 @@ export function draw() {
   for (const h of state.heroes) actors.push({ y: h.hp > 0 ? h.y : h.spawn.y, draw: () => drawHero(h) });
   if (state.dog && state.dog.hp > 0) actors.push({ y: state.dog.y, draw: drawDog });
   actors.sort((a, b) => a.y - b.y).forEach((a) => a.draw());
+  // Living details on the structures, drawn over them: lantern glows, torches, banners, the temple's glint, the fountain
+  // Lairs: the skulls' eyes glow and green mist seeps out of the entrance
+  map.entries.forEach((e, i) => {
+    const T = state.time + i * 1.7;
+    for (const s of lairStakes(e)) { const gl = 0.5 + Math.sin(T * 3 + s.x) * 0.4; circle(ctx, s.x - 2.2, s.y - 36, 1.4, `rgba(118,255,3,${gl})`); circle(ctx, s.x + 2.2, s.y - 36, 1.4, `rgba(118,255,3,${gl})`); }
+    for (let k = 0; k < 5; k++) {
+      const p = (T * 0.25 + k / 5) % 1, spread = Math.sin(T * 0.7 + k * 2.3) * 22;
+      const mx = e.rx + e.inn.x * p * 70 - e.inn.y * spread, my = e.ry + e.inn.y * p * 70 + e.inn.x * spread - p * 6;
+      ctx.globalAlpha = 0.22 * (1 - p) * (0.6 + 0.4 * Math.sin(T * 2 + k));
+      circle(ctx, mx, my, 10 + p * 16, "#8bc34a");
+    }
+    ctx.globalAlpha = 1;
+  });
+  // Exit gates: torches burn on the pillars and a chain with the castle's banner hangs across the road
+  map.exits.forEach((g, i) => {
+    const [a, b] = gatePillars(g), T = state.time * 9 + i;
+    if (g.style === 2) {                                                    // Moorish gate: the gold tips of the domes catch the sun
+      const tw = 0.5 + 0.5 * Math.sin(state.time * 2.2 + i + 2);
+      const tips = [{ x: a.x, y: a.y - 39 - 7 * 2.25 }, { x: b.x, y: b.y - 39 - 7 * 2.25 }];
+      if (Math.abs(a.y - b.y) < 1) tips.push({ x: (a.x + b.x) / 2, y: a.y - 36 - 22 - 6 * 2.25 });
+      for (const f of tips) { ctx.globalAlpha = 0.12 + tw * 0.18; circle(ctx, f.x, f.y, 4 + tw * 3, "rgba(255,225,130,0.7)"); ctx.globalAlpha = 0.3 + tw * 0.5; circle(ctx, f.x - 0.4, f.y - 0.4, 0.8, "#fffbe6"); ctx.globalAlpha = 1; }
+      return;
+    }
+    if (g.style === 1) {                                                    // paifang: red lanterns swing from the posts with a warm glow
+      // The gold finials on the roofs catch the sun with a soft pulsing glow
+      const tw = 0.5 + 0.5 * Math.sin(state.time * 2.2 + i + 1);
+      const finials = Math.abs(a.y - b.y) < 1 ? [{ x: (a.x + b.x) / 2, y: a.y - 66 }] : [{ x: a.x, y: a.y - 58 }, { x: b.x, y: b.y - 58 }];
+      for (const f of finials) { ctx.globalAlpha = 0.12 + tw * 0.18; circle(ctx, f.x, f.y, 4 + tw * 3, "rgba(255,225,130,0.7)"); ctx.globalAlpha = 0.3 + tw * 0.5; circle(ctx, f.x - 0.5, f.y - 0.5, 0.9, "#fffbe6"); ctx.globalAlpha = 1; }
+      for (const p of [a, b]) {
+        const sway = Math.sin(state.time * 1.6 + p.x) * 2.5, lx = p.x + 7 + sway, ly = p.y - 36;
+        line(ctx, p.x + 5, p.y - 42, lx, ly - 6, "#5d0000", 1);
+        ctx.globalAlpha = 0.3; circle(ctx, lx, ly, 13, "rgba(255,120,60,0.6)"); ctx.globalAlpha = 1;
+        ellipse(ctx, lx, ly, 4, 5.5, "#c84a3f", "#7a2420", 0.8);
+        line(ctx, lx - 3, ly - 2, lx + 3, ly - 2, "rgba(255,255,255,0.25)", 1); line(ctx, lx - 3, ly + 2, lx + 3, ly + 2, "rgba(0,0,0,0.25)", 1);
+        rect(ctx, lx - 2, ly - 7, 4, 1.6, "#ffd54f"); rect(ctx, lx - 2, ly + 5.4, 4, 1.6, "#ffd54f");
+        line(ctx, lx, ly + 7, lx + sway * 0.3, ly + 12, "#ffd54f", 1);      // tassel
+      }
+      return;
+    }
+    const style = CASTLE_STYLES[(map.castles[i] || map.castles[0]).style];
+    ctx.strokeStyle = "#4e342e"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(a.x, a.y - 44); ctx.quadraticCurveTo((a.x + b.x) / 2, (a.y + b.y) / 2 - 36, b.x, b.y - 44); ctx.stroke();
+    const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2 - 40;
+    poly(ctx, [[mx - 7, my], [mx + 7, my], [mx + 6, my + 12 + Math.sin(state.time * 4) * 1.5], [mx, my + 18 + Math.sin(state.time * 5) * 2], [mx - 6, my + 12 + Math.sin(state.time * 4) * 1.5]], style.banner, "rgba(0,0,0,0.3)", 0.8);
+    for (const p of [a, b]) {
+      const fl = Math.sin(T + p.x) * 1.5, fl2 = Math.sin(T * 1.7 + p.y) * 1.2;
+      poly(ctx, [[p.x - 3, p.y - 46], [p.x + 3, p.y - 46], [p.x + fl, p.y - 56 - fl2]], "#ff9800");
+      poly(ctx, [[p.x - 1.5, p.y - 46], [p.x + 1.5, p.y - 46], [p.x + fl * 0.6, p.y - 52 - fl2]], "#ffeb3b");
+      ctx.globalAlpha = 0.25; circle(ctx, p.x, p.y - 50, 14, "rgba(255,180,60,0.6)"); ctx.globalAlpha = 1;
+    }
+  });
+  map.castles.forEach((k, i) => {
+    if (k.style === 2) {                                                    // the temple flies no flag: lanterns sway gently by the doors
+      // The gold finial catches the sun: a soft glow and a four-point glint that pulses
+      const fx = k.x, fy = k.y - 103 * k.scale, tw = 0.5 + 0.5 * Math.sin(state.time * 2.2 + i);
+      ctx.globalAlpha = 0.12 + tw * 0.18; circle(ctx, fx, fy, (5 + tw * 3) * k.scale, "rgba(255,225,130,0.7)"); ctx.globalAlpha = 1;
+      const r = (2 + tw * 3.5) * k.scale;
+      ctx.strokeStyle = `rgba(255,250,220,${0.25 + tw * 0.45})`; ctx.lineWidth = 1; ctx.beginPath();
+      ctx.moveTo(fx - r, fy); ctx.lineTo(fx + r, fy); ctx.moveTo(fx, fy - r); ctx.lineTo(fx, fy + r); ctx.stroke();
+      for (const side of [-1, 1]) {
+        const sway = Math.sin(state.time * 1.4 + i + side) * 1.6 * k.scale, lx = k.x + side * 45 * k.scale + sway, ly = k.y - 23 * k.scale;
+        line(ctx, k.x + side * 45 * k.scale, ly - 8 * k.scale, lx, ly - 4 * k.scale, "#5a1a16", 1);
+        ctx.globalAlpha = 0.28; circle(ctx, lx, ly, 9 * k.scale, "rgba(255,120,60,0.6)"); ctx.globalAlpha = 1;
+        ellipse(ctx, lx, ly, 2.6 * k.scale, 3.4 * k.scale, "#c84a3f", "#7a2420", 0.8);
+        rect(ctx, lx - 1.3 * k.scale, ly - 4.4 * k.scale, 2.6 * k.scale, 1, "#e9c55a"); rect(ctx, lx - 1.3 * k.scale, ly + 3.4 * k.scale, 2.6 * k.scale, 1, "#e9c55a");
+      }
+      return;
+    }
+    if (k.style === 1) {                                                    // the palace flies no flag: the crescent glints and the fountain plays
+      const sc = k.scale, tw = 0.5 + 0.5 * Math.sin(state.time * 2.2 + i + 3);
+      const cx = k.x, cy = k.y - (60 + 20 * 2.25 + 5) * sc;
+      ctx.globalAlpha = 0.1 + tw * 0.16; circle(ctx, cx, cy, (6 + tw * 3) * sc, "rgba(255,225,130,0.7)"); ctx.globalAlpha = 0.3 + tw * 0.5; circle(ctx, cx - 3.5 * sc, cy + 1 * sc, 0.8, "#fffbe6"); ctx.globalAlpha = 1;
+      const fx = k.x, fy = k.y + 17 * sc;
+      for (let j = 0; j < 6; j++) {                                         // water droplets arcing out of the spout
+        const p = (state.time * 0.9 + j / 6) % 1, side = j % 2 ? 1 : -1, dx = side * p * 7 * sc, dy = -(Math.sin(p * Math.PI) * 10 + 2) * sc;
+        ctx.globalAlpha = 0.85 * (1 - p * 0.6); circle(ctx, fx + dx, fy - 1 * sc + dy, 1 * sc, "#e3f2fd");
+      }
+      for (let j = 0; j < 2; j++) { const p = (state.time * 0.6 + j / 2) % 1; ctx.globalAlpha = (1 - p) * 0.5; ctx.strokeStyle = "#e3f2fd"; ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(fx, fy, (2 + p * 6) * sc, (1 + p * 2.8) * sc, 0, 0, Math.PI * 2); ctx.stroke(); }   // ripples
+      ctx.globalAlpha = 1;
+      return;
+    }
+    flag(k.x, k.y - 92 * k.scale, 22 * k.scale, CASTLE_STYLES[k.style].banner, 1 + i);
+  });
+
+  // Scorch marks from cannonballs slowly fade away
+  for (const sc of state.scorches) {
+    ctx.globalAlpha = 0.45 * (sc.life / sc.maxLife);
+    circle(ctx, sc.x, sc.y, sc.r, "#2b1d14");
+    circle(ctx, sc.x, sc.y, sc.r * 0.55, "#140c08");
+    ctx.globalAlpha = 1;
+  }
+
+  // Blood splashes soak into the ground
+  for (const b of state.blood) {
+    const fade = Math.min(1, b.life / 3);
+    ctx.globalAlpha = 0.55 * fade;
+    for (const d of b.drops) circle(ctx, b.x + d.x, b.y + d.y, d.r, "#8e1b1b");
+    ctx.globalAlpha = 0.35 * fade;                                   // darker centres so the drops look wet
+    for (const d of b.drops) circle(ctx, b.x + d.x, b.y + d.y, d.r * 0.55, "#5a0f0f");
+    ctx.globalAlpha = 1;
+  }
+
   drawEagle();                                               // airborne, so always on top
 
   // Chain lightning from the spires: jagged white bolts with a blue glow, gone in a flash
