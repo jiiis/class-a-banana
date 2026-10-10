@@ -412,6 +412,12 @@ export function lairStakes(e) {
 }
 function drawLairGround(c, e, rand) {
   const ax = e.inn.x, ay = e.inn.y, px = -ay, py = ax;
+  // Chevrons worn into the dirt, pointing the way the monsters come in
+  for (let k = -1; k <= 1; k++) {
+    const cx = e.rx + ax * 74 + ax * k * 16, cy = e.ry + ay * 74 + ay * k * 16;
+    c.strokeStyle = "rgba(70,45,20,0.45)"; c.lineWidth = 3; c.lineCap = "round"; c.lineJoin = "round";
+    c.beginPath(); c.moveTo(cx - ax * 5 + px * 10, cy - ay * 5 + py * 10); c.lineTo(cx + ax * 5, cy + ay * 5); c.lineTo(cx - ax * 5 - px * 10, cy - ay * 5 - py * 10); c.stroke();
+  }
   // Scorched, trampled earth where the monsters pour in
   const g = c.createRadialGradient(e.rx - ax * 10, e.ry - ay * 10, 4, e.rx - ax * 10, e.ry - ay * 10, 60);
   g.addColorStop(0, "rgba(30,20,25,0.55)"); g.addColorStop(1, "rgba(30,20,25,0)");
@@ -458,9 +464,9 @@ function drawGateGround(c, g) {
   // Chevrons worn into the dirt, pointing the way out
   const ax = g.out.x, ay = g.out.y, px = -ay, py = ax;
   for (let k = -1; k <= 1; k++) {
-    const cx = g.x - ax * 26 + ax * k * 20, cy = g.y - ay * 26 + ay * k * 20;
-    c.strokeStyle = "rgba(70,45,20,0.45)"; c.lineWidth = 4; c.lineCap = "round"; c.lineJoin = "round";
-    c.beginPath(); c.moveTo(cx - ax * 7 + px * 14, cy - ay * 7 + py * 14); c.lineTo(cx + ax * 7, cy + ay * 7); c.lineTo(cx - ax * 7 - px * 14, cy - ay * 7 - py * 14); c.stroke();
+    const cx = g.x - ax * 26 + ax * k * 16, cy = g.y - ay * 26 + ay * k * 16;
+    c.strokeStyle = "rgba(70,45,20,0.45)"; c.lineWidth = 3; c.lineCap = "round"; c.lineJoin = "round";
+    c.beginPath(); c.moveTo(cx - ax * 5 + px * 10, cy - ay * 5 + py * 10); c.lineTo(cx + ax * 5, cy + ay * 5); c.lineTo(cx - ax * 5 - px * 10, cy - ay * 5 - py * 10); c.stroke();
   }
 }
 export function gateAnchorY(g) { const [a, b] = gatePillars(g); return Math.max(a.y, b.y) + 6; }
