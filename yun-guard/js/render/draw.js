@@ -86,14 +86,16 @@ function drawRallyFlag(p, moving) {
 
 // An empty build spot: a weathered stone pad half-sunk in the grass, kept muted so it reads as
 // scenery until the mouse is over it. Once a tower stands there, the pad is gone.
+export const SPOT_SQUASH = 0.62;   // how much the build pads are foreshortened (1 = seen straight from above)
 function drawSpot(s, i, occupied, hovered) {
   if (occupied) return;
   const { x, y } = s, R = SPOT_RADIUS;
   ctx.save();
   ctx.globalAlpha = hovered ? 1 : 0.6;
-  // Earth rim and shadow so the pad looks sunk into the ground
-  ctx.globalAlpha *= 0.5; circle(ctx, x, y + 2.5, R + 1, "#2e4a1c"); ctx.globalAlpha = hovered ? 1 : 0.6;
-  circle(ctx, x, y + 1.2, R, "#6f7a62");                              // dark lower edge
+  // Seen from the front and above: the pad is a foreshortened disc with a visible front edge
+  ctx.translate(x, y); ctx.scale(1, SPOT_SQUASH); ctx.translate(-x, -y);
+  ctx.globalAlpha *= 0.5; circle(ctx, x, y + 3, R + 1, "#2e4a1c"); ctx.globalAlpha = hovered ? 1 : 0.6;
+  circle(ctx, x, y + 3, R, "#6f7a62");                                // the disc's front edge, showing below the top face
   const g = ctx.createRadialGradient(x - R * 0.3, y - R * 0.4, 2, x, y, R + 1);
   g.addColorStop(0, hovered ? "#d6d0c6" : "#b6b8a6");                  // greener, duller stone when idle
   g.addColorStop(1, hovered ? "#a8a297" : "#8c9280");
