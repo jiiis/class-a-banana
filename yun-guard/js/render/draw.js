@@ -7,7 +7,7 @@ import { buildBackground, drawSign, CASTLE_STYLES, gatePillars, lairStakes } fro
 import { drawTower, flag } from "./towers.js";
 import { drawEnemy, drawCorpse } from "./creatures.js";
 import { drawSoldier } from "./soldiers.js";
-import { drawCritter } from "./critters.js";
+import { drawCritter, drawWaterBird } from "./critters.js";
 import { drawHero, drawDog, drawEagle } from "./hero.js";
 import { drawWeather } from "../weather.js";
 
@@ -39,18 +39,26 @@ function drawWater() {
     }
   }
   ctx.globalAlpha = 1;
+  // Ducks and swans paddle slowly around the bigger ponds
+  for (const p of map.ponds) for (const b of p.birds || []) {
+    const a = b.a0 + T * b.speed, x = p.x + Math.cos(a) * p.rx * b.r, y = p.y + Math.sin(a) * p.ry * b.r;
+    const dir = -Math.sin(a) * b.speed >= 0 ? 1 : -1;                     // facing the way it drifts
+    ctx.globalAlpha = 0.35; ctx.strokeStyle = "#e3f2fd"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x - dir * 4, y + 2); ctx.lineTo(x - dir * 16, y + 5); ctx.moveTo(x - dir * 4, y + 2); ctx.lineTo(x - dir * 16, y - 1); ctx.stroke();   // wake
+    ctx.globalAlpha = 1;
+    drawWaterBird(b.kind, x, y, dir, T + b.a0);
+  }
   for (const f of state.fish) {
     const p = Math.min(1, f.t / f.dur);
     if (f.t < 0.15 || (f.t > f.dur - 0.05 && f.t < f.dur + 0.4)) {          // splash rings on the way out and back in
       const k = f.t < 0.15 ? f.t / 0.15 : (f.t - (f.dur - 0.05)) / 0.45;
-      const sx = f.x + (f.t < 0.15 ? 0 : f.dir * 26);
+      const sx = f.x + (f.t < 0.15 ? 0 : f.dir * f.size * 4);
       ctx.globalAlpha = (1 - k) * 0.8;
-      circle(ctx, sx, f.y, 3 + k * 9, null, "#e3f2fd", 1.5);
-      if (k < 0.5) for (let d = 0; d < 3; d++) circle(ctx, sx + (d - 1) * 4, f.y - 3 - k * 10, 1, "#e3f2fd");
+      circle(ctx, sx, f.y, 2 + k * 5, null, "#e3f2fd", 1.2);
+      if (k < 0.5) for (let d = 0; d < 3; d++) circle(ctx, sx + (d - 1) * 3, f.y - 2 - k * 6, 0.8, "#e3f2fd");
       ctx.globalAlpha = 1;
     }
     if (p >= 1) continue;
-    const x = f.x + f.dir * p * 26, y = f.y - Math.sin(p * Math.PI) * f.hop;
+    const x = f.x + f.dir * p * f.size * 4, y = f.y - Math.sin(p * Math.PI) * f.hop;
     ctx.save();
     ctx.translate(x, y);
     ctx.scale(f.dir, 1);
@@ -147,7 +155,7 @@ export function draw() {
       ctx.globalAlpha = 0.25; circle(ctx, p.x, p.y - 50, 14, "rgba(255,180,60,0.6)"); ctx.globalAlpha = 1;
     }
   });
-  map.castles.forEach((k, i) => flag(k.x, k.y - (k.style === 1 ? 86 : 92) * k.scale, 24 * k.scale, CASTLE_STYLES[k.style].banner, 1 + i));
+  map.castles.forEach((k, i) => flag(k.x, k.y - (k.style === 1 ? 86 + 22 : 92) * k.scale, 22 * k.scale, CASTLE_STYLES[k.style].banner, 1 + i));   // the sandstone keep's pole stands on its roof peak
 
   // Scorch marks from cannonballs slowly fade away
   for (const sc of state.scorches) {

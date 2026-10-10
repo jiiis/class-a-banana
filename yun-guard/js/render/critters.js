@@ -1,4 +1,4 @@
-import { ctx, circle, ellipse, poly, line, shadow } from "./gfx.js";
+import { ctx, rect, circle, ellipse, poly, line, shadow } from "./gfx.js";
 import { state } from "../state.js";
 
 // Cute animals drawn with shapes. Each faces right; the canvas is flipped
@@ -14,7 +14,7 @@ export function drawCritter(c) {
     for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) line(ctx, c.x + dx * (pulse + 2), c.y + 1 + dy * (pulse + 2), c.x + dx * (pulse + 6), c.y + 1 + dy * (pulse + 6), "#ffd54f", 1.5);
   }
   const k = CRITTER_SCALE[c.type] || 1;                                      // small animals drawn smaller
-  shadow(ctx, c.x, c.y + 1, (c.type === "deer" ? 11 : c.type === "chicken" ? 5 : 8) * k, 3 * k);
+  shadow(ctx, c.x, c.y + 1, (c.type === "deer" ? 11 : c.type === "chicken" || c.type === "duck" ? 5 : 8) * k, 3 * k);
   ctx.save();
   ctx.translate(c.x, c.y);
   ctx.scale(c.dir * k, k);
@@ -22,7 +22,36 @@ export function drawCritter(c) {
   ctx.restore();
 }
 
-const CRITTER_SCALE = { bunny: 0.7, chicken: 0.8, fox: 0.9 };
+// Birds floating on a pond: only the top half shows above the water
+export function drawWaterBird(kind, x, y, dir, t) {
+  ctx.save();
+  ctx.translate(x, y + Math.sin(t * 2) * 0.6);
+  ctx.scale(dir, 1);
+  if (kind === "swan") {
+    ctx.scale(0.72, 0.72);
+    ellipse(ctx, 0, -2, 9, 4, "#fafafa", "#cfd8dc", 1);                     // body
+    poly(ctx, [[-8, -4], [-13, -9], [-6, -5]], "#fafafa", "#cfd8dc", 0.8); // raised tail feathers
+    ctx.strokeStyle = "#fafafa"; ctx.lineCap = "round";
+    ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(4, -2); ctx.quadraticCurveTo(8, -3, 10, -6.5); ctx.stroke();                 // thick base rising from the breast
+    ctx.lineWidth = 3.2; ctx.beginPath(); ctx.moveTo(10, -6.5); ctx.bezierCurveTo(13, -10, 11, -14, 7, -14.5); ctx.bezierCurveTo(3, -15, 4, -21, 8.5, -21); ctx.stroke();   // then the S up to the head
+    circle(ctx, 9, -21.5, 2.6, "#fafafa", "#cfd8dc", 0.8);                   // head
+    poly(ctx, [[11, -22], [15, -21], [11, -20]], "#fb8c00");               // bill, pointing gently down and forward
+    rect(ctx, 10, -22.7, 2, 1.6, "#212121");                                // black mask
+    circle(ctx, 9.7, -22.1, 0.6, "#212121");
+  } else {
+    ellipse(ctx, 0, -1.5, 6.5, 3, "#8d6e63", "#5d4037", 1);               // duck body
+    ellipse(ctx, 0.5, -2, 4, 1.8, "#a1887f");
+    poly(ctx, [[-6, -3], [-9.5, -5], [-6, -1]], "#5d4037");                // tail
+    line(ctx, 4.5, -3, 5.5, -7, "#2e7d32", 2.6);                            // neck
+    circle(ctx, 6, -8.5, 2.8, "#2e7d32", "#1b5e20", 0.8);                   // green head
+    line(ctx, 4.5, -6, 7.5, -6, "#fafafa", 1);                              // collar
+    poly(ctx, [[8.3, -8.5], [11.8, -7.7], [8.3, -6.9]], "#fdd835");         // bill
+    circle(ctx, 7, -9.2, 0.7, "#212121");
+  }
+  ctx.restore();
+}
+
+const CRITTER_SCALE = { bunny: 0.7, chicken: 0.8, fox: 0.9, deer: 0.86, cow: 1.2, duck: 0.8 };
 
 const DRAW = {
   bunny(phase, moving) {
@@ -76,6 +105,44 @@ const DRAW = {
     ellipse(ctx, 15, -10 + nod, 3.5, 2.5, "#fff3e0");                 // muzzle
     circle(ctx, 18, -10.5 + nod, 1.2, "#212121");                     // nose
     circle(ctx, 12.5, -13 + nod, 1.1, "#212121");                     // eye
+  },
+
+  // A dairy cow: big white body with black patches, a pink udder, a broad head with a pale muzzle,
+  // short horns and floppy ears. Chews slowly when it stands still.
+  cow(phase, moving) {
+    const sw = moving ? Math.sin(phase) * 3 : 0;
+    const chew = moving ? 0 : Math.sin(phase * 2) * 0.8;
+    const white = "#f5f5f5", black = "#2b2b2b", edge = "#616161";
+    for (const [lx, d] of [[-9, 1], [-4, -1], [5, 1], [10, -1]]) {                                         // legs with hooves
+      line(ctx, lx, -8, lx + sw * d, 0, white, 3);
+      ellipse(ctx, lx + sw * d, 0.3, 1.8, 1, black);
+    }
+    ellipse(ctx, 0, -14, 14, 8, white, edge, 1);                                                           // body
+    ellipse(ctx, -5, -15, 5, 4, black); ellipse(ctx, 5, -11, 4, 3, black); ellipse(ctx, 2, -19, 3, 2, black);   // patches
+    ellipse(ctx, 2, -7.5, 4, 2.2, "#f8bbd0", "#e59aa6", 0.8);                                              // udder
+    line(ctx, -14, -16, -18, -9, white, 2); circle(ctx, -18.5, -8, 1.6, black);                              // tail with tuft
+    ellipse(ctx, 13, -16 + chew * 0.3, 6, 5, white, edge, 1);                                               // head
+    ellipse(ctx, 16.5, -13 + chew, 4, 3, "#f8bbd0", "#e59aa6", 0.8);                                        // muzzle
+    circle(ctx, 15.5, -13.5 + chew, 0.6, "#b5667a"); circle(ctx, 17.8, -13.5 + chew, 0.6, "#b5667a");
+    ellipse(ctx, 11, -17, 2.5, 2, black);                                                                   // eye patch
+    circle(ctx, 11.5, -17, 0.9, "#212121"); circle(ctx, 11.8, -17.3, 0.3, "#fff");                            // eye
+    poly(ctx, [[9, -20], [5.5, -21], [8, -18]], white, edge, 0.8); poly(ctx, [[16, -20], [19.5, -21], [17, -18]], white, edge, 0.8);   // ears
+    line(ctx, 10.5, -20.5, 9.5, -24, "#d7ccc8", 1.8); line(ctx, 15, -20.5, 16, -24, "#d7ccc8", 1.8);         // short horns
+  },
+
+  // A mallard duck: brown body, green head, yellow bill; waddles with a wagging tail
+  duck(phase, moving) {
+    const sw = moving ? Math.sin(phase) * 2 : 0, wag = Math.sin(phase * 2) * 1.5;
+    line(ctx, -1, -4, -1 + sw, 0, "#fb8c00", 1.5); line(ctx, 2, -4, 2 - sw, 0, "#fb8c00", 1.5);   // legs
+    poly(ctx, [[-2 + sw, 0], [-4 + sw, 0.5], [0 + sw, 0.5]], "#fb8c00"); poly(ctx, [[1 - sw, 0], [-1 - sw, 0.5], [3 - sw, 0.5]], "#fb8c00");   // webbed feet
+    ellipse(ctx, 0, -7, 7, 4.5, "#8d6e63", "#5d4037", 1);          // body
+    ellipse(ctx, 1, -7.5, 4.5, 2.5, "#a1887f");                    // folded wing
+    poly(ctx, [[-6, -9], [-10, -11 + wag], [-7, -6]], "#5d4037");  // tail
+    line(ctx, 5, -9, 6.5, -13, "#2e7d32", 3);                      // neck
+    circle(ctx, 7, -14.5, 3.2, "#2e7d32", "#1b5e20", 1);           // green head
+    line(ctx, 5.5, -11.5, 8.5, -11.5, "#fafafa", 1.2);              // white collar
+    poly(ctx, [[9.5, -14.5], [13.5, -13.5], [9.5, -12.5]], "#fdd835"); // bill
+    circle(ctx, 8, -15.3, 0.8, "#212121");                          // eye
   },
 
   chicken(phase, moving) {

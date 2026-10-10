@@ -211,7 +211,7 @@ function drawPond(c, p) {
   blob(c, pondOutline(p, 0.85, 0), g);                                  // sunlit shallows
   for (let i = 0; i < 3; i++) {                                         // lily pads, one with a flower
     const a = rand() * Math.PI * 2, r = rand() * 0.55;
-    const lx = p.x + Math.cos(a) * p.rx * r, ly = p.y + Math.sin(a) * p.ry * r, lr = 3 + rand() * 2.5;
+    const lx = p.x + Math.cos(a) * p.rx * r, ly = p.y + Math.sin(a) * p.ry * r, lr = 4.5 + rand() * 3.5;
     circle(c, lx, ly, lr, "#5faa4a", "#3c7a2a", 0.8);
     line(c, lx, ly, lx + lr, ly - lr * 0.4, "#3c7a2a", 1);
     if (i === 0) { for (let k = 0; k < 5; k++) { const fa = k * 1.26; ellipse(c, lx + Math.cos(fa) * 1.8, ly - 1 + Math.sin(fa) * 1.2, 1.6, 0.9, "#f8bbd0"); } circle(c, lx, ly - 1, 0.9, "#ffeb3b"); }
@@ -269,7 +269,7 @@ function drawRiver(c, r, rand, pass) {
       }
       if (w > 22 && rand() < 0.1) {                                   // lily pads only on the wide pools
         const o = (rand() - 0.5) * w * 0.7;
-        circle(c, x + n.x * o, y + n.y * o, 3 + rand() * 2, "#5faa4a", "#3c7a2a", 0.8);
+        circle(c, x + n.x * o, y + n.y * o, 4 + rand() * 3, "#5faa4a", "#3c7a2a", 0.8);
       }
       if (w < 18 && rand() < 0.12) {                                  // white water in the narrow runs
         const o = (rand() - 0.5) * w * 0.6;

@@ -12,6 +12,8 @@ const BEHAVIOUR = {
   sheep: { speed: 25, wander: 30, idleMin: 2.5, idleMax: 6.0 },
   fox:   { speed: 60, wander: 45, idleMin: 1.5, idleMax: 4.0 },
   chicken: { speed: 35, wander: 25, idleMin: 1.0, idleMax: 3.0 },
+  cow:   { speed: 22, wander: 30, idleMin: 3.0, idleMax: 7.0 },
+  duck:  { speed: 32, wander: 30, idleMin: 1.0, idleMax: 3.5 },
 };
 
 export function initCritters() {
@@ -30,7 +32,7 @@ export function slayCritter(c) {
   state.gold += 2;
   addFloater(c.x, c.y - 16, "+2", "#ffd54f");
   addBurst(c.x, c.y, 12, "rgba(255,255,255,0.8)");
-  addBlood(c.x, c.y, c.type === "deer" ? 22 : c.type === "chicken" ? 10 : 16);
+  addBlood(c.x, c.y, c.type === "deer" || c.type === "cow" ? 22 : c.type === "chicken" || c.type === "duck" ? 10 : 16);
   sfx("die", 0.08); sfx("coin", 0.12);
 }
 

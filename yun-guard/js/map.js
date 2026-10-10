@@ -66,7 +66,18 @@ export function generateMap(seed) {
   const exits = [];
   for (const r of map.routes) if (r.exit && !exits.some((e) => e.edge === r.exit.edge && e.pos === r.exit.pos)) exits.push(r.exit);
   // Gates mark the exits: where the road leaves the map, facing outward
-  map.exits = exits.map((ex) => { const c = center(edgeCell(ex.edge, ex.pos)), inn = INWARD[ex.edge]; return { edge: ex.edge, pos: ex.pos, x: c.x + inn.dc * 108, y: c.y + inn.dr * 108, out: { x: -inn.dc, y: -inn.dr } }; });   // the gate stands where the margin begins
+  map.exits = exits.map((ex) => {
+    const c = center(edgeCell(ex.edge, ex.pos)), inn = INWARD[ex.edge], px = -inn.dr, py = inn.dc;
+    let g = null;
+    for (const d of [108, 94, 80, 66]) {                                   // where the margin begins, or a little further out if a bend is in the way
+      const gx = c.x + inn.dc * d, gy = c.y + inn.dr * d;
+      const span = ROAD_WIDTH / 2 + 14;
+      const posts = [{ x: gx + px * span, y: gy + py * span }, { x: gx - px * span, y: gy - py * span }];
+      g = { edge: ex.edge, pos: ex.pos, x: gx, y: gy, out: { x: -inn.dc, y: -inn.dr } };
+      if (posts.every((p) => roadDistance(p) > ROAD_WIDTH / 2 + 6)) break;
+    }
+    return g;
+  });
   const two = exits.length > 1, fullScale = two ? 0.9 : 1.05;
   // How much grass is around a castle of size sc at (x, y)? The least distance from its walls to any road.
   const roomAround = (x, y, sc) => {
@@ -199,6 +210,7 @@ function finishRiver(pts, rand, { base, taper = false, parent = null, joinAt = n
   }
   for (let pass = 0; pass < 2; pass++) for (let i = 1; i < pts.length - 1; i++) pts[i].w = (pts[i - 1].w + pts[i].w + pts[i + 1].w) / 3;
   pts.forEach((p) => { p.w = Math.max(taper ? 22 : 26, Math.min(80, p.w)); });
+  if (taper) { const n = pts.length; pts[n - 1].w *= 1.7; pts[n - 2].w *= 1.35; pts[n - 3].w *= 1.1; }   // the mouth flares out where it meets the river
   const river = { points: pts, width: Math.max(...pts.map((p) => p.w)), base, parent };   // width = the widest point (used for clearances)
   // Wherever the water so much as touches the road there must be a bridge. Walk along the river,
   // note every stretch that comes within reach of the road, and reject rivers that run alongside
@@ -262,10 +274,15 @@ function makePonds(rand) {
     const riverRoom = map.rivers.length ? Math.min(...map.rivers.map((r) => closestPointOnPath(r.points, p).d - r.width / 2)) : Infinity;
     const room = Math.min(roadDistance(p), riverRoom, ...map.castles.map((k) => dist(p, k) - 60 * k.scale), ...map.entries.map((e) => dist(p, e) - 40), ...map.ponds.map((q) => dist(p, q) - q.rx - 30));
     const rx = Math.min(170, (room - 72) * 1.0);                            // keeps a clear bank of grass between the water and the road
-    if (rx < 30) continue;                                                   // no puddles: too cramped here, try elsewhere
+    if (rx < 40) continue;                                                   // no puddles: too cramped here, try elsewhere
     p.rx = rx * (0.85 + rand() * 0.15); p.ry = p.rx * (0.55 + rand() * 0.2);
     // A gently irregular outline: a radius factor for each of 12 directions
     p.wobble = Array.from({ length: 12 }, () => 0.82 + rand() * 0.36);
+    // Big ponds attract water birds: a pair of ducks, or a swan or two, drifting slowly around
+    if (p.rx >= 70) {
+      const swans = rand() < 0.45, n = 1 + Math.floor(rand() * (swans ? 2 : 3));
+      p.birds = Array.from({ length: n }, (_, k) => ({ kind: swans ? "swan" : "duck", a0: rand() * Math.PI * 2 + k * 1.3, r: 0.25 + rand() * 0.4, speed: (0.05 + rand() * 0.06) * (rand() < 0.5 ? 1 : -1) }));
+    }
     map.ponds.push(p);
   }
 }
@@ -526,10 +543,10 @@ function scatterDeco(rand) {
     const roll = rand();
     const type = roll < 0.32 ? "tree" : roll < 0.5 ? "bush" : roll < 0.63 ? "rock" : roll < 0.85 ? "flower" : roll < 0.93 ? "mushroom" : "stump";
     // Every piece of scenery gets its own look: a variant, a size and a seed for its small random details
-    const size = type === "flower" ? 0.5 + rand() * 0.25 : type === "mushroom" ? 0.55 + rand() * 0.25 : type === "stump" ? 0.6 + rand() * 0.2 : 0.8 + rand() * 0.5;   // small things stay small
+    const size = type === "flower" ? 0.5 + rand() * 0.25 : type === "mushroom" ? 0.42 + rand() * 0.2 : type === "stump" ? 0.6 + rand() * 0.2 : type === "tree" ? 1.0 + rand() * 0.4 : 0.8 + rand() * 0.5;   // small things stay small, trees stand tall
     out.push({ type, x: p.x, y: p.y, s: size, variant: Math.floor(rand() * 3), seed: Math.floor(rand() * 1e6) });
     // Company: trees often come as a small wood of 2 to 4, flowers as a patch of 3 to 7
-    const group = type === "tree" && rand() < 0.55 ? { n: 2 + Math.floor(rand() * 3), near: 28, far: 62, gap: 22, s: () => 0.75 + rand() * 0.5 }
+    const group = type === "tree" && rand() < 0.55 ? { n: 2 + Math.floor(rand() * 3), near: 30, far: 66, gap: 24, s: () => 0.95 + rand() * 0.4 }
       : type === "flower" && rand() < 0.75 ? { n: 3 + Math.floor(rand() * 5), near: 10, far: 34, gap: 8, s: () => 0.45 + rand() * 0.3 } : null;
     if (group) {
       for (let k = 0, tries = 0; k < group.n && tries < 24; tries++) {
@@ -545,7 +562,7 @@ function scatterDeco(rand) {
 }
 
 // A random handful of animals: how many and which kinds changes every map.
-const ANIMAL_ODDS = [["bunny", 0.28], ["sheep", 0.24], ["chicken", 0.18], ["deer", 0.15], ["fox", 0.15]];
+const ANIMAL_ODDS = [["bunny", 0.22], ["sheep", 0.18], ["chicken", 0.15], ["deer", 0.13], ["fox", 0.12], ["cow", 0.1], ["duck", 0.1]];
 
 function placeCritters(rand) {
   const out = [];
