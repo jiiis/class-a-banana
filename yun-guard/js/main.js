@@ -122,7 +122,7 @@ function setPaused(on) {
   sfx("click");
 }
 pauseBtn.addEventListener("click", () => setPaused(!state.paused));
-document.getElementById("paused").addEventListener("click", () => setPaused(false));   // tap anywhere on the pause screen to resume
+document.querySelector("#paused span").addEventListener("click", () => setPaused(false));   // the big play button resumes
 window.addEventListener("keydown", (ev) => { if ((ev.code === "KeyP" || ev.code === "Space") && heroPick.style.display === "none" && !state.over) { ev.preventDefault(); setPaused(!state.paused); } });
 
 // Main loop
