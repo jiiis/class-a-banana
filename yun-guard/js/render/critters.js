@@ -73,21 +73,24 @@ const DRAW = {
   deer(phase, moving) {
     const sw = moving ? Math.sin(phase) * 4 : 0;
     const nod = moving ? 0 : Math.sin(phase) * 2.5;                 // head bobs while grazing
-    for (const [lx, d] of [[-8, 1], [-4, -1], [6, 1], [10, -1]]) line(ctx, lx, -12, lx + sw * d, 0, "#8d6e63", 2.5);
-    ellipse(ctx, 0, -15, 12, 7, "#b07a3b", "#6d4c41", 1);          // body
+    const edge = "#8a5a2a";                                          // a soft outline a shade darker than the coat
+    for (const [lx, d] of [[-8, 1], [-4, -1], [6, 1], [10, -1]]) line(ctx, lx, -12, lx + sw * d, 0, "#9c6a35", 2.5);
+    ellipse(ctx, 0, -15, 12, 7, "#b07a3b", edge, 0.8);             // body
     for (const [sx, sy] of [[-5, -16], [0, -19], [4, -14], [-1, -12]]) circle(ctx, sx, sy, 1.2, "#efdcc3");   // spots
     line(ctx, -12, -17, -16, -13, "#b07a3b", 3);                    // tail
     line(ctx, 10, -19, 15, -27 + nod, "#b07a3b", 5);                // neck
-    ellipse(ctx, 17, -29 + nod, 5.5, 4, "#b07a3b", "#6d4c41", 1);   // head
-    ellipse(ctx, 21.5, -28 + nod, 2.5, 1.8, "#8d6e63");             // muzzle
+    ellipse(ctx, 17, -29 + nod, 5.5, 4, "#b07a3b", edge, 0.8);      // head
+    ellipse(ctx, 21.5, -28 + nod, 2.5, 1.8, "#c9a06a");             // muzzle, a lighter shade of the coat
     circle(ctx, 23, -28.5 + nod, 0.9, "#212121");                   // nose
     circle(ctx, 18, -30.5 + nod, 1, "#212121");                     // eye
-    poly(ctx, [[13, -32 + nod], [11, -37 + nod], [15, -33 + nod]], "#b07a3b", "#6d4c41", 1);   // ear
+    poly(ctx, [[13, -32 + nod], [11, -37 + nod], [15, -33 + nod]], "#b07a3b", edge, 0.8);   // ear
     line(ctx, 15, -33 + nod, 13, -41 + nod, "#5d4037", 1.5);        // antlers
     line(ctx, 14, -38 + nod, 11, -40 + nod, "#5d4037", 1.5);
     line(ctx, 15, -33 + nod, 18, -40 + nod, "#5d4037", 1.5);
     line(ctx, 17, -37 + nod, 20, -38 + nod, "#5d4037", 1.5);
   },
+
+
 
   fox(phase, moving) {
     const sw = moving ? Math.sin(phase) * 4 : 0;
@@ -112,16 +115,16 @@ const DRAW = {
   cow(phase, moving) {
     const sw = moving ? Math.sin(phase) * 3 : 0;
     const chew = moving ? 0 : Math.sin(phase * 2) * 0.8;
-    const white = "#f5f5f5", black = "#2b2b2b", edge = "#616161";
+    const white = "#f5f5f5", black = "#2b2b2b", edge = "#bdbdbd";          // a soft grey outline, not a hard black one
     for (const [lx, d] of [[-9, 1], [-4, -1], [5, 1], [10, -1]]) {                                         // legs with hooves
-      line(ctx, lx, -8, lx + sw * d, 0, white, 3);
-      ellipse(ctx, lx + sw * d, 0.3, 1.8, 1, black);
+      line(ctx, lx, -8, lx + sw * d, 0, white, 2.2);
+      ellipse(ctx, lx + sw * d, 0.3, 1.5, 0.9, black);
     }
-    ellipse(ctx, 0, -14, 14, 8, white, edge, 1);                                                           // body
+    ellipse(ctx, 0, -14, 14, 8, white, edge, 0.8);                                                         // body
     ellipse(ctx, -5, -15, 5, 4, black); ellipse(ctx, 5, -11, 4, 3, black); ellipse(ctx, 2, -19, 3, 2, black);   // patches
-    ellipse(ctx, 2, -7.5, 4, 2.2, "#f8bbd0", "#e59aa6", 0.8);                                              // udder
-    line(ctx, -14, -16, -18, -9, white, 2); circle(ctx, -18.5, -8, 1.6, black);                              // tail with tuft
-    ellipse(ctx, 13, -16 + chew * 0.3, 6, 5, white, edge, 1);                                               // head
+    ellipse(ctx, -6, -7.5, 3.6, 2.2, "#f8bbd0", "#e59aa6", 0.8);                                            // udder, between the hind legs
+    line(ctx, -14, -16, -18, -9, white, 1.3); circle(ctx, -18.5, -8, 1.3, black);                            // tail with tuft
+    ellipse(ctx, 13, -16 + chew * 0.3, 6, 5, white, edge, 0.8);                                             // head
     ellipse(ctx, 16.5, -13 + chew, 4, 3, "#f8bbd0", "#e59aa6", 0.8);                                        // muzzle
     circle(ctx, 15.5, -13.5 + chew, 0.6, "#b5667a"); circle(ctx, 17.8, -13.5 + chew, 0.6, "#b5667a");
     ellipse(ctx, 11, -17, 2.5, 2, black);                                                                   // eye patch
