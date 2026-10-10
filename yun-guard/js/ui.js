@@ -29,13 +29,16 @@ export function setWaveButton(mode, seconds) {
   b.classList.toggle("ready", mode === "ready" || mode === "start");
   b.disabled = mode === "busy" || mode === "over" || state.paused;
   b.title = mode === "start" ? "Start the first wave" : mode === "ready" ? "Call the next wave now for bonus gold" : mode === "busy" ? "Wave in progress" : "Game over";
-  face.innerHTML = icon(mode === "start" ? "play" : mode === "ready" ? "forward" : mode === "busy" ? "swords" : "hourglass");
+  face.innerHTML = icon(mode === "start" ? "swords" : mode === "ready" ? "forward" : mode === "busy" ? "hourglass" : "x");
   badge.classList.toggle("on", mode === "ready");
   if (mode === "ready") badge.textContent = Math.ceil(Math.max(seconds, 0));
 }
 
 export function endGame(won) {
   state.over = true;
+  state.paused = false;
+  $("paused").style.display = "none";
+  $("pause").disabled = true;
   setWaveButton("over");
   $("overlayTitle").textContent = won ? "Victory!" : "Game Over";
   $("overlayText").textContent = (won

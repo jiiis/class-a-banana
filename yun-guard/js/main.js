@@ -30,10 +30,12 @@ const preset = new URLSearchParams(location.search).get("hero");
 function chooseHero(kind) {
   initHero(kind);
   heroPick.style.display = "none";
-  document.getElementById("next").disabled = false;   // hero chosen: the wave button comes alive
+  document.getElementById("next").disabled = false;   // hero chosen: the wave and pause buttons come alive
+  document.getElementById("pause").disabled = false;
   sfx("select");
 }
-document.getElementById("next").disabled = true;
+document.getElementById("next").disabled = true;          // until a legend is chosen
+document.getElementById("pause").disabled = true;
 for (const card of heroPick.querySelectorAll(".card")) card.addEventListener("click", () => chooseHero(card.dataset.hero));
 if (["april", "avril", "ember", "willow", "meilin"].includes(preset)) chooseHero(preset);
 
